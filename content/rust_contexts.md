@@ -1,6 +1,6 @@
 +++
-title = "Future Rust: context desugaring"
-date = 2021-12-24
+title = "Future Rust: context emulation"
+date = 2021-12-26
 
 [taxonomies]
 tags = ["rust", "contexts"]
@@ -14,17 +14,23 @@ let us explore a potential design within current reach of Rust.
 
 Exploring concrete desugaring can help us find the limits and answer some of those difficult questions
 that were raised.
-This isn't a concrete proposition, rather a loose (and incomplete!) sketch of
-how we can potentially express contexts in today's Rust.
+This isn't a concrete proposal, rather an attempt to emulate contexts in today's stable Rust.
 
-Also, here's the [playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=6da521cc5f27588edada2a2516e33df6)
-which I used for exploration (warning: **very** NSFW).
+## A couple of notes
+
+* Here's the [playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=cc8a4d2e3fb8033f3a1618009ac02e26)
+    which I used for exploration (warning: **very** NSFW).
+
+* The following approach can be summarized as "capability is just an extra variable passed to you by the caller".
+    This is not the only possible interpretation.
+
+* We will use global allocator as a strawman for typical use.
+    Allocation is one of the more pervasive ambient capabilities in every program,
+    so it makes for perfect target to test the design.
+    Especially, we would like to consider repercussions of switching from "old" global-`static`-based implementation
+    to new shiny `alloc` capability.
 
 ## Representation
-
-We will use global allocator as a strawman for typical use.
-Allocation is one of the more pervasive ambient capabilities in every program,
-so it makes for perfect target to test the design.
 
 ### Capabilities
 
@@ -48,34 +54,23 @@ Very straightforward.
 We should be able to call a function from different places with potentially different contexts,
 so it makes sense for context to be generic.
 On the other hand, we also need to be able to extract capabilities from it - that's the whole point.
-We can achieve this with traits, `Get`, `GetMut` and `GetOnce`:
+We can achieve this with `Get` trait:
 
 ```rust
 trait Get<'a, T> {
     fn get(&self) -> &'a T;
 }
-
-trait GetMut<'a, T> {
-    fn get_mut(&mut self) -> &'a mut T;
-}
-
-trait GetOnce<T> {
-    type OtherCx;
-
-    fn get_once(self) -> (T, Self::OtherCx);
-}
 ```
 
-It is important to bundle lifetime along references in `Get` and `GetMut` -
-we don't want to be bound to lifetime of context itself.
-`GetOnce` is also peculiar, it returns a different "leftover" context back to us.
-After `get_once` is called we can no longer acquire the same capability from current context,
-but to encode that in type system we need to drop `GetOnce` trait itself.
-This is done by exchanging current context type for a different `OtherCx` type
-which (presumably) carries the other capabilities.
-Constraining it in `where` clause is certainly a pain.
-I wonder if there is a better way.
+It is important to bundle lifetime along the reference - we don't want to be bound to lifetime of context itself.
 
+You may ask, what about mutable references or taking by value?
+It seems like very natural extensions and indeed are already proposed in [this post](https://jam1.re/blog/thoughts-on-contexts-and-capabilities-in-rust),
+but both introduce a big complication: we need to be able to *move out* of context.
+This is not easy to achieve while keeping all the machinery working and probably warrants a separate exploration post.
+For now, let's swipe it under the rug.
+
+It is probably far from final design, but this simple trait should be able to get us started. 
 Combining with previous section we can already express capability requirements as normal `where` blocks:
 
 ```rust
@@ -117,7 +112,7 @@ just with an addition of extra `Cx` parameter.
 
 There are probably a few points which capture your attention.
 
-First, it may feel more natural to put `Cx` as generic bound on *method* instead of trait,
+First, it may feel more appropriate to put `Cx` as generic bound on *method* instead of trait,
 but that gives us wrong semantics.
 `Cx` param on method says "function is callable with every possible `Cx` as long as trait is implemented",
 however this is wrong.
@@ -145,15 +140,16 @@ with &alloc
 becomes
 
 ```rust
-struct __foo;
+struct __foo<'a>(PhantomData<&'a ()>);
 
-impl<Cx> CxFn<(), Cx> for __foo
+impl<'a, Cx> CxFn<(), Cx> for __foo<'a>
 where
-    for<'a> Cx: Get<'a, __alloc>,
+    Cx: Get<'a, __alloc>,
 {
     fn cx_call(&self, (): (), cx: Cx) {
-        let __alloc: &__alloc = cx.get();
-        let mem = __alloc.0.allocate();
+        let __a: &__alloc = cx.get();
+        let alloc = &__a.0;
+        let mem = alloc.allocate();
     }
 }
 ```
@@ -167,8 +163,21 @@ Observations:
    so you **must** specify capability if you use it directly.
    This is very much like Rust, it forces you to explicitly state your intentions.
 3. You **must** explicitly specify desired ownership for every capability.
-    I use fictional `&alloc`, `&mut alloc` and `move alloc` syntax to represent that.
+    I use fictional `&alloc` syntax (by analogy with `self`; you can imagine how `&mut alloc` and `alloc` would work).
     This is again analogous to normal parameters.
+4. I sneaked an extra feature into the example and the expansion should give you a clue.
+    This is Rust, so what's your first thought when you see a reference?
+    Right, where's the lifetime?!
+    We are pampered by compiler who elides them in so many places, but this is new territory.
+    Strictly speaking, `foo` must be generic over `alloc`'s lifetime:
+
+    ```
+   fn foo<'a>() 
+   with &'a alloc
+   {
+       // ...
+   }
+    ```
 
 ### Constraint propagation
 
@@ -200,9 +209,7 @@ but that states constraint explicitly as opposed to smuggling it through.
 Instead, we do something rather roundabout: we just require that *`foo` is callable with current context*.
 Compiler is smart and will deduce required bound on `bar` from bound on `foo`.
 
-Smuggling is successful!
-
-There is a thought to be had here.
+There is a peculiar thought to be had here.
 Unlike with previous case this extra bound on `bar` is added silently which can be upsetting to explicit gang.
 We can consider to explicitly write it in `bar`'s signature
 
@@ -220,8 +227,13 @@ Newcomers without knowledge of contexts will likely get greatly confused.
 
 ### Traits
 
-`with` on trait simply reapplies bound to all methods.
-There is no shared `Cx` type at trait level, so this is the only possible behaviour.
+Traits are difficult.
+Major part of this difficulty is that we don't have a natural syntax to express methods as function objects.
+
+We can surmise that applying `with` on trait *definition* simply reapplies bound to all methods - 
+there is no shared `Cx` type at trait level, so this is the only possible behaviour.
+But `with` on trait *implementation* looks like a huge can of worms,
+so let's swipe it under that rug too for the time being.
 
 ### Context creation
 
@@ -229,27 +241,41 @@ One last bit to look at is context creation.
 
 ```rust
 with alloc = GlobalAllocator::new() {
-    bar()
+    foo()
 }
 ```
 
 becomes
 
 ```rust
+// This is the context from outer scope.
+let __outer_cx: __OuterCx;
 {
     let alloc = __alloc(GlobalAllocator::new());
 
-    struct __ScopedContext<'a> {
+    struct __ScopedContext<'a, 'outer, OuterCx> {
+        __outer: &'outer OuterCx,
         alloc: &'a __alloc,
     }
-
-    impl<'a> Get<'a, __alloc> for __ScopedContext<'a> {
+    
+    impl<'a, 'outer, OuterCx> Get<'a, __alloc> for __ScopedContext<'a, 'outer, OuterCx> {
         fn get(&self) -> &'a __alloc {
             self.alloc
         }
     }
+    
+    impl<'a, 'outer, OuterCx> Deref for __ScopedContext<'a, 'outer, OuterCx> {
+        type Target = OuterCx;
+    
+        fn deref(&self) -> &Self::Target {
+            self.__outer
+        }
+    }
 
-    let __cx = __ScopedContext { alloc: &alloc };
+    let __cx = __ScopedContext {
+        __outer: &__outer_cx,
+        alloc: &alloc,
+    };
 
     __foo.cx_call((), __cx)
 }
@@ -257,9 +283,15 @@ becomes
 
 Quite straightforward, again.
 
-If there is an outer context we can use `Get*` traits to pull extra capabilities from it in case those are needed.
+`Deref` impl allows us to "inherit" getters from outer context.
+Don't worry about overlapping `Get` implementations between two contexts: requested method will be tried against 
+current context first before dereferencing.
+The mechanism at play here is resemblant of 
+[autoref specialization](https://github.com/dtolnay/case-studies/tree/master/autoref-specialization).
 
 ## Interaction with other language parts
+
+The fun part.
 
 ### `Fn*` traits
 
@@ -351,7 +383,7 @@ closure may outlive the current function, but it borrows `cx` ...",
 and suggest you explicitly move context into closure instead.
 
 But what about *contextual closures*?
-Surely there is some madman out there already contemplating a use for them.
+Surely, there is some madman out there already contemplating a use for them.
 Unfortunately it implies we are able to construct a closure generic over `Cx` type,
 but we will need to figure out how to make generic closures first.
 I haven't seen any RFC on the subject, but it may be in the works somewhere.
@@ -359,8 +391,9 @@ I haven't seen any RFC on the subject, but it may be in the works somewhere.
 ### Callbacks
 
 Callbacks can choose whether they want to propagate their own context or not.
-Because whole ecosystem currently lives with `Fn*`, this will probably become a golden standard.
-It is also almost impossible to use normal functions as callbacks, which can break existing code.
+Because whole ecosystem currently lives with `Fn*`, this will probably become the golden standard.
+
+Thanks to `alloc`, it is also almost impossible to use normal functions as callbacks, which can break existing code.
 Mitigation is easy: just wrap your callback in closure so it captures all necessary context.
 
 Contextual callbacks is a potential direction for future, but without contextual closures such API is *hard* to use
@@ -396,7 +429,7 @@ Context still needs to be shared and passed over somehow,
 so it makes sense to bake it into function call or function object itself,
 which leads to `FnOnce` bound once more.
 
-By extension, `main` should also implement `Fn`, but that's debatable, we will come back to this point in a moment.
+By extension, `main` should also implement `Fn` but that can be argued, we will come back to this point in a moment.
 
 What about `Send` (or `'static`)?
 `Send` on the closure translates naturally onto `Send` on captures, which includes `Cx` type -
@@ -439,11 +472,11 @@ Can we do this?
 
 Sure, there are two simple steps:
 
-1. Provide default value on capability itself.
+1. Provide initializer value.
     It must be const evaluatable, remember
     [rule 1.4](https://doc.rust-jp.rs/the-rust-programming-language-ja/1.9/complement-design-faq.html#there-is-no-life-before-or-after-main-no-static-ctorsdtors):
     no life before `main`.
-2. Write `with interner = Capability::default()` on top of your function.
+3. Write `with interner = Capability::default()` on top of your function.
 
 Wait, what? Where did my default go? Isn't setting it by hand defeats the point?
 
@@ -473,19 +506,20 @@ Alright, let's unpack.
 
 First, `interner` is private to module.
 As we already deduced, it cannot appear in public APIs.
-Second, `foo` uses `interner`, so it must be set before the call.
-Third, compiler sees public `foo` which has unsatisfied capability `interner`,
-but `interner` cannot be set in anywhere outside the module,
-so when `foo` is called from outside `interner` can only be set inside `foo`.
-Fourth, `interner` has a default, so user expects this to be automatically set.
+Second, compiler sees public `foo` which has unsatisfied capability `interner`, so it must be set before the call.
+However, when `foo` is called from outside, `interner` cannot be part of accepted context due to visibility, 
+so `interner` can only be set inside `foo`.
+Third, `interner` has a default, so user expects this to be automatically set.
 Following this logic, compiler silently adds `with interner = Capability::default()` to the top of `foo`
 as the only way to provide the default.
 
 Now, when we call `bar` it sets `interner` but that gets immediately overridden inside `foo`.
 What an elegant footgun, activated by simply adding a `pub`!
-
 All of this happened because compiler tried to second-guess what we mean.
 Let's keep it explicit, shall we?
+
+Should default be represented as `static`/`const` variable?
+It doesn't really matter for private capabilities, but for public ones it depends on interaction with `main`.
 
 ### Defaults and `main`
 
@@ -496,7 +530,7 @@ This is one case where this explicitness certainly hurts.
 
 In case we guarantee that `main` requires no context, 
 every ambient capability provided by any of your dependencies must be set by hand.
-On the other hand ambient capabilities are extremely pervasive, so it is preferable to set them on top of `main`.
+Ambient capabilities are extremely pervasive, so it is preferable to set them on top of `main`.
 But many applications don't even have access to the function!
 
 And then, just imagine starting every doc-test with 
@@ -510,12 +544,15 @@ fn main() {
 }
 ```
 
-Options are not very abundant.
-We can rely on compiler to enumerate all existing ambient capabilities and silently add them on top of `main` -
-for everyone's sanity.
-Alternatively, we can drop `Fn` requirement on `main` and pass in some prebaked global context
-(which should be acceptable if all capability defaults are const-evluatable).
-Effectively, both amount to the same thing with difference in details.
+Options are not very abundant:
+* We can rely on compiler to enumerate all existing ambient capabilities and silently add them on top of `main` -
+    for everyone's sanity.
+* Alternatively, we can drop `Fn` requirement on `main` and pass in some prebaked global context
+    (which should be acceptable if all capability defaults are const-evaluatable).
+
+Personally I don't like the second option: it doesn't provide a natural way to leave undesired capabilities unset,
+so some other use cases may suffer.
+For example, having compiler automatically set default allocator in a kernel sounds like a *terrible* idea.
 
 ### Object safety
 
@@ -578,6 +615,9 @@ This also begets a thought, that if direct Rust-to-Rust communication ever happe
 
 ## Potential breakage
 
+So, what happens if we suddenly move `std` to use `alloc` capability?
+Lots of stuff breaks:
+
 * All of exported FFI
 * Normal functions as callbacks - auto-fixable.
 * Certain closures uses - sometimes auto-fixable.
@@ -616,6 +656,8 @@ let f: &dyn Fn() -> Vec<_> = if cond {
 but capturing variable local to branches makes boxing hard to avoid.
 
 ## Case study: global allocator
+
+On the closing note, let's try to actually implement global allocator as capability. 
 
 Global allocator is determined by [`GlobalAlloc`](https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html) trait,
 so global allocator itself basically is just a vtable (+maybe some data).
@@ -657,7 +699,7 @@ pub capability alloc: &'static dyn GlobalAlloc = &std::alloc::alloc::Global;
 This looks fun and way more tractable that it looked at first.
 Rust still keeps surprising me in how *powerful* it is!
 
-There is certainly a lot more to investigate (interaction with lifetimes? generic code? constraining as part of trait?),
-but this post is already way too long. 
+There is certainly a lot more to investigate (interaction with lifetimes? generic code? constraining as part of trait?
+mutable/by-value contexts?), but this post is already way too long. 
 
 Hope you had fun too, see you next time!
