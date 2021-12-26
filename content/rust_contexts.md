@@ -1,5 +1,5 @@
 +++
-title = "Future Rust: context emulation"
+title = "Futuristic Rust: context emulation"
 date = 2021-12-26
 
 [taxonomies]
