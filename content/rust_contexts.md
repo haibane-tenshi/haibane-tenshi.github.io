@@ -140,11 +140,11 @@ with &alloc
 becomes
 
 ```rust
-struct __foo<'a>(PhantomData<&'a ()>);
+struct __foo;
 
-impl<'a, Cx> CxFn<(), Cx> for __foo<'a>
+impl<Cx> CxFn<(), Cx> for __foo
 where
-    Cx: Get<'a, __alloc>,
+    for<'a> Cx: Get<'a, __alloc>,
 {
     fn cx_call(&self, (): (), cx: Cx) {
         let __a: &__alloc = cx.get();
@@ -169,15 +169,21 @@ Observations:
     This is Rust, so what's your first thought when you see a reference?
     Right, where's the lifetime?!
     We are pampered by compiler who elides them in so many places, but this is new territory.
-    Strictly speaking, `foo` must be generic over `alloc`'s lifetime:
+     
+    In this case, there is no need to trace lifetime of `alloc` through `foo` (it returns a unit type)
+    which is expressed in HRTB bound: `alloc`'s can have any lifetime, we don't care.
+5. However, if `foo` returns anything referring to `alloc` it **must** be generic over `alloc`'s lifetime:
 
     ```
-   fn foo<'a>() 
-   with &'a alloc
-   {
-       // ...
-   }
-    ```
+    fn foo<'a>() -> &'a [u8]
+    with &'a alloc
+    {
+        // ...
+    }
+     ```
+   
+    This is part of the reason why explicitly specifying desired ownership is so important: compiler needs to know this
+    information in order to properly calculate lifetimes.
 
 ### Constraint propagation
 
