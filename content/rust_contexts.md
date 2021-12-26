@@ -171,7 +171,7 @@ Observations:
     We are pampered by compiler who elides them in so many places, but this is new territory.
      
     In this case, there is no need to trace lifetime of `alloc` through `foo` (it returns a unit type)
-    which is expressed in HRTB bound: `alloc`'s can have any lifetime, we don't care.
+    which is expressed in HRTB bound: `alloc`'s reference can have any lifetime, we don't care.
 5. However, if `foo` returns anything referring to `alloc` it **must** be generic over `alloc`'s lifetime:
 
     ```
@@ -607,7 +607,7 @@ fn ffi_safe() {
 In other words, it means all exported functions **must** properly set all required capabilities on Rust side.
 This makes a lot of sense: even if we allow other language to do it, how do they know how to do it correctly?
 
-The problem here is already existing FFI-exported functions - every singly one will get broken as soon as some of the
+The problem here is already existing FFI-exported functions - every single one will get broken as soon as some of the
 more contagious capabilities get introduced (like `alloc`).
 Some cases may require creating extra wrappers as well.
 
@@ -626,7 +626,7 @@ Lots of stuff breaks:
 
 * All of exported FFI
 * Normal functions as callbacks - auto-fixable.
-* Certain closures uses - sometimes auto-fixable.
+* Certain closure uses - sometimes auto-fixable.
 
 Because closures now silently capture more things, it can lead to breakage 
 when multiple closures are converted to `fn` pointers:
@@ -666,7 +666,7 @@ but capturing variable local to branches makes boxing hard to avoid.
 On the closing note, let's try to actually implement global allocator as capability. 
 
 Global allocator is determined by [`GlobalAlloc`](https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html) trait,
-so global allocator itself basically is just a vtable (+maybe some data).
+so global allocator itself is just a vtable (+possibly some data).
 To allow overriding we need type erasure;
 the textbook solution is to use `Box<dyn GlobalAlloc>` trait object, but we can't, creating box requires allocation!
 Instead, we have to keep it as a reference only:
@@ -694,7 +694,7 @@ This will provide us with the same overall semantics as `#[global_allocator]`.
 pub capability alloc: &'static dyn GlobalAlloc;
 ```
 
-Setting default is the easy part: `std` default allocator is ZST, so we can just put it in:
+Setting default is the easy part: `std`'s default allocator is ZST, so we can just put it in:
 
 ```rust
 pub capability alloc: &'static dyn GlobalAlloc = &std::alloc::alloc::Global;
