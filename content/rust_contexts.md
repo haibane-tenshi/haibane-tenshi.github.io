@@ -21,8 +21,9 @@ This isn't a concrete proposal, rather an attempt to emulate contexts in today's
 * Here's the [playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=cc8a4d2e3fb8033f3a1618009ac02e26)
     which I used for exploration (warning: **very** NSFW).
 
-* The following approach can be summarized as "capability is just an extra variable passed to you by the caller".
+* The following approach can be summarized as "capability is a variable living on the stack and passed to you by the caller as an extra parameter".
     This is not the only possible interpretation.
+    (Update 28.12.2021: clarification)
 
 * We will use global allocator as a strawman for typical use.
     Allocation is one of the more pervasive ambient capabilities in every program,
