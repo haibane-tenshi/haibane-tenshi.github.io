@@ -1,23 +1,19 @@
 +++
-title = "Obscure Rust: early- and late-bound generics"
-draft = true
+title = "Obscure Rust: early- and late-bound generics in functions"
+date = 2022-06-10
 
 [taxonomies]
 tags = ["rust", "function", "generics", "lifetime"]
 +++
 
-Did you know, with respect to functions there exist two different kinds of lifetimes: early- and late-bound?
-
-<!-- more -->
-
 This is a strange edge in type system I ran into when I was working on another attempt at representing
 [contexts](@/rust_contexts.md).
 If contextual functions aspire to be anything like normal ones,
-they also need to properly interact with differently bound lifetimes.
-But to do that we need to understand how late-bound lifetimes interact with normal functions in the first place.
+they need to properly interact with late-bound lifetimes.
+But to do that we need to understand how those work in normal functions in the first place.
 
 This is something like a third attempt at explaining this, even though the first two were a lot less formalized.
-I'm fairly confident in my claims, but what do I know?
+I'm fairly confident in my claims, but I'm learning this along with you.
 If you find any mistakes make sure to tell.
 It is also important to note that I was studying this interaction from inside the language.
 So, narrative is likely to differ from the one used by whoever designed the feature.
@@ -67,12 +63,6 @@ impl Fn<()> for i_am_function {
         todo!()
     }
 }
-
-impl Default for i_am_function {
-    fn default() -> Self {
-        i_am_function
-    }
-}
 ```
 
 Note that we need two unstable features `fn_traits` and `unboxed_closures` to compile examples.
@@ -87,12 +77,6 @@ fn main() {
 
 While functions implement all three `Fn*` traits, in the future I will only show `FnOnce` as
 it contains all necessary information.
-
-`Default` trait is redundant here, but is helpful in other cases where `i_am_function` is not a trivial unit type.
-"Normal" function is zero-sized type, so when its value is required to properly invoke the function 
-it is just spawned out of thin air.
-Currently, there is no way to encode this requirement, but `Default` is the next best thing.
-Implementation of the trait also will be omitted to reduce boilerplate.
 
 With this we are ready to see what exactly is happening behind the scenes.
 Time to bring in generics.
@@ -117,9 +101,9 @@ Rust requires us to use generic parameters inside the struct, therefore `Phantom
 Exact way it is used can get complicated to achieve correct [variance][nomicon:variance],
 but that is an entirely separate topic.
 
-Here you probably noticed something interesting: obviously `impl` block requires generics on it,
+Here you probably noticed something interesting: obviously, `impl` block requires generics on it,
 but `generic_function` type doesn't have any use for parameters.
-So the choice whether to put it there feels... arbitrary.
+So the choice whether to put it there feels arbitrary.
 Both cases look valid.
 
 Situation become clearer if we give things proper names.
@@ -139,12 +123,12 @@ Nothing surprising here.
 
 ## Importance of monomorphization
 
-To put everything together we need to accept one last secret ingredient:
+To put everything together we need to apply one last secret ingredient:
 
-> Every monomorphized function type is always valid to call.
+> Every function value is always valid to call.
 
 Explaining where the rule comes from is a non-trivial task, so for now, let's put this concern aside.
-This formulation is a bit vague, so let's see how it interacts with above definitions.
+This formulation is definitely vague, so let's see how it interacts with above definitions.
 
 For example, early-bound parameters work just fine:
 
@@ -180,8 +164,8 @@ impl<T: Clone> FnOnce<(T,)> for foo
 }
 ```
 
-Even though `foo` is a proper monomorphized type (monomorphization is trivial in this case),
-if you attempt to substitute `!Clone` type it will result in compilation failure,
+Even though `foo` is a proper value,
+if you attempt to call it with `!Clone` type it will result in compilation failure,
 i.e. we cannot call function with such parameter!
 
 With this experiment, we can phrase our expectations about late-bound parameters:
@@ -352,7 +336,6 @@ For example, if we take some non-`'static` type like `&u32` then `&T` becomes `&
 To be valid it must satisfy bound `'b: 'a`, but we already deduced that it cannot be violated!
 We can claim that both `'a` and `'b` can be bound late.
 And the most crazy part: compiler [agrees][playground:a_b_u32] with us!
-Isn't it cool?!
 
 This situation is result of how Rust treats references.
 Along with reference we receive *an implied bound* which always holds
@@ -544,12 +527,12 @@ Without late-bound generics simply abstracting over references in functions beco
 ## Why early-bound parameters matter
 
 Still there is one last question left without satisfying answer.
-Where the rule about function type monomorphization comes from?
+Where the rule about callability comes from?
 We saw a lot of existing language structure appear from it, but why does that rule exists in the first place?
 
-Well, something I didn't spell out is the fact that function monomorphization happens in *two steps*:
+Well, something I didn't spell out loud is the fact that function monomorphization happens in *two steps*:
 first, on function type, then - on `impl` block.
-So, the only way to break original rule - while writing functional code, of course - 
+So, the only way to break original rule - while writing functioning code, of course - 
 is to fail second monomorphization step.
 Which can be reformulated as
 
@@ -569,18 +552,13 @@ In the function model we use monomorphization happens in *two* places.
 Which one is real?
 Rust's decision was to associate function's monomorphized type with resulting assembly function.
 However, this ruling has side effects.
-Every assembly function should have *exactly one* code path,
-which now also should be true for `Fn*` `impl` blocks regardless of how monomorphization on them go.
 
-The exact part is important.
-If there is no code paths to take, then we managed to write a function without a body, effectively a linker symbol
-pointing into nowhere.
-On the other hand multiple paths are just as bad: how compiler is supposed to choose which one to take?
-
-However, all this leaves `impl` block in an awkward position:
+Now, every `Fn*` `impl` block must result in exactly one set of assembly instructions - 
+regardless of how monomorphization on it goes!
+This leaves `impl` block in an awkward position:
 on the one hand it can (and wants to!) introduce new generics, but it must be extremely careful.
 Monomorphization at this step can no longer fail (sounds familiar?) or
-produce multiple code paths. 
+result in multiple paths invocation could take. 
 Latter, by the way, is the real reason why there are no late-bound types.
 (And if you wonder why this logic doesn't apply to lifetimes,
 lifetimes are just compiler annotations used to prove certain properties of the code,
@@ -592,24 +570,22 @@ There you have it.
 You can probably imagine that those decisions happened in a lot more haphazard way in the early days of Rust,
 and it left us with some interesting consequences.
 
-First, `Fn*` trait implementors must satisfy an extra condition of having *only one code path*,
-so they are... *function-like*?
-I don't know if there is a good term for this.
+First, `Fn*` trait implementors must satisfy an extra condition of 
+being compiled down to a singular set of machine instructions, so they are... *function-like*?
+At this point, any applicable terminology is slipping away from me.
 
 Second, since current HRTB rules are based off `Fn*` trait logic,
-so only *function-like* trait objects can be properly expressed.
+only *function-like* trait objects can be properly expressed.
 This potentially hurts us in terms of language richness:
 for other traits the rule is entirely artificial and doesn't necessarily make sense.
 
 Another pain point is `unboxed_closures` feature.
-If it is stabilised as-is anyone will be able to write "wrong" functions in stable Rust -
-just like it was done in this post.
+If it is stabilised as-is anyone will be able to write "wrong" functions in stable Rust.
 What are we going to do about that?
 
 And, just maybe, this is a glimpse of a clash between abstractions.
-We tried to glue Rust's function types to assembly functions, but could it be that we are wrong?
-Sure, both share the name, but they mean wildly different things.
-Maybe there is some room for improvements here.
+We tried to glue Rust's function types directly to assembly, but could it be that we are wrong?
+Could there be some room for improvements here?
 
 I hope you found this journey both interesting and educational.
 See you next time!
