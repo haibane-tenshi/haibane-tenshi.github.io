@@ -160,7 +160,7 @@ fn mutate_twice(mut i: &mut u32) -> &mut u32 {
 
 > As pointed out by /u/reflexpr-sarah- this example is actually not identical to original one:
 > in the original, second call to `mutate` actually *moves* `i` in, so there is no reborrow happening.
-> If you remove the second call to `reborrow`, example actually [compiles][playground:emu3]
+> If you remove the second call to `reborrow`, example actually [compiles][playground:emu3].
 >
 > I was trying to be clever here, and got called out.
 > In theory, for this problem to happen we need to return reference to local variable.
@@ -172,7 +172,7 @@ fn mutate_twice(mut i: &mut u32) -> &mut u32 {
 > which squashes all subsequent uses and therefore removes reborrow.
 > This is also known as `get_or_create` pattern.
 >
-> Summarizing, I don't it is possible to make it fail in *current* Rust,
+> Summarizing, I don't think it is possible to make it fail in *current* Rust,
 > but with addition of [Polonius][github:polonius] or further improvements to borrow checker this is likely to manifest.
 
 [playground:emu1]: https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=3c0b652692a370b4186764424122991c
