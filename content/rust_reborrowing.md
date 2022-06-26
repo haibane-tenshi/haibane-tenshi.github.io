@@ -1,9 +1,9 @@
 +++
-title = "Obscure Rust: reborrowing"
-draft = true
+title = "Obscure Rust: reborrowing is a half-baked feature"
+date = 2022-06-26
 
 [taxonomies]
-tags = ["rust", "function", "generics", "lifetime"]
+tags = ["rust", "reborrowing"]
 +++
 
 Let's start with simple motivating use case.
@@ -47,10 +47,10 @@ let b: &mut _ = &mut *a;
 //              ^^^^^^
 ```
 
-It seems like it just a new reference is created, but in fact it does something much more interesting.
-There can exist only one mutable borrow, and to achieve that parent borrow `a` is suspended in the process,
+It seems like just a new reference is created, but in fact it does something much more interesting.
+There can exist only one mutable borrow, and to achieve that parent borrow `a` is suspended,
 then `b` becomes an active borrow in its stead.
-There is no problem with us using `b` at this point as compiler knows that this is the only borrow that can be used:
+There is no problem with us using `b` at this point as compiler knows that this is the only borrow that *can* be used:
 
 ```rust
 let mut num = 32_u32;
@@ -129,7 +129,7 @@ fn reborrow<'a, 'b, T>(r: &'a mut &'b mut T) -> &'a mut T {
 }
 ```
 
-This should look very familiar: `Clone::clone` is very similar in both structure and rationale.
+This should look familiar: `Clone::clone` is very similar in both structure and rationale.
 We want to keep original reference intact, so we pass it by reference (resulting in double reference).
 Also, outer reference needs to be mutable, so that compiler is able to infer uniqueness of resulting reference.
 
@@ -291,7 +291,6 @@ Emulation while cute is sorely inadequate as a replacement.
 `unsafe` is maybe heralded as an escape hatch, but it fails miserably to resolve the situation
 because converting references to pointers erases all lifetime information.
 This is not what we want.
-There is no way around.
 
 And this is exactly the edge case I ran into.
 
