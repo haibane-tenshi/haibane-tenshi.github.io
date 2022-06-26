@@ -158,8 +158,27 @@ fn mutate_twice(mut i: &mut u32) -> &mut u32 {
 
 :(
 
+> As pointed out by /u/reflexpr-sarah- this example is actually not identical to original one:
+> in the original, second call to `mutate` actually *moves* `i` in, so there is no reborrow happening.
+> If you remove the second call to `reborrow`, example actually [compiles][playground:emu3]
+>
+> I was trying to be clever here, and got called out.
+> In theory, for this problem to happen we need to return reference to local variable.
+> However, as long as compiler can statically deduce that use on return statement is indeed the last one,
+> reborrow turns into a move.
+> We can force reborrow by making sure that return statement is decided at runtime,
+> for example using `if`s or `loop`s...
+> but then Rust just requires for borrow to exist for the scope of the whole function
+> which squashes all subsequent uses and therefore removes reborrow.
+> This is also known as `get_or_create` pattern.
+>
+> Summarizing, I don't it is possible to make it fail in *current* Rust,
+> but with addition of [Polonius][github:polonius] or further improvements to borrow checker this is likely to manifest.
+
 [playground:emu1]: https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=3c0b652692a370b4186764424122991c
 [playground:emu2]: https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=a411b9c755033d2f296478eb49c2d227
+[playground:emu3]: https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=06141d86ba25e194a2864568882560b8
+[github:polonius]: https://github.com/rust-lang/polonius
 
 # Alternative view
 
