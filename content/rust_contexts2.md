@@ -48,17 +48,15 @@ So, before we start let's talk a little about what we want to achieve.
 
 ## Improving on context design
 
-Context representation holds key to current approach.
+To avoid confusion, I expanded on terminology a bit.
+
+* *Context* is a general name for a collection of capabilities a given function receives.
+
+* `Store` is an actual type(s) which used to this purpose.
 
 ### True nature of stores
-
-> To avoid confusion, I expanded on terminology a bit.
-> 
-> *Context* is a general name for a collection of capabilities a given function receives.
-> 
-> `Store` is an actual type(s) which used to this purpose.
  
-`Store` type is a container with the following properties:
+`Store` is a container with the following properties:
 
 * It can hold values of different types (capability wrappers in our case), i.e. is heterogeneous.
 * At most one value of each type is allowed (due to shadowing/replacement).
@@ -69,10 +67,9 @@ It doesn't take much difficulty to put it all together: context is just *a stati
 `anymap` container maps *type* `T` to a single *value* of `T`.
 It is a relatively niche container type.
 There are [articles][blog:anymap] theorizing its existence
-as well as already working and widely used [implementations][docs.rs:anymap]. 
-
+as well as already working and widely used [implementations][docs.rs:anymap].
 Still, considering the state of type manipulation in Rust,
-building a *statically*-typed version sounds absolutely insane.
+building a *statically-typed* version sounds insane.
 A perfect job for us.
 
 [blog:anymap]: https://www.jakobmeier.ch/blogging/Untapped-Rust.html#section-1-a-heterogenous-collection-of-singletons
@@ -86,10 +83,8 @@ we can use that hash to map onto a type-erased value of that type,
 for example with the help of `HashMap<TypeId, Box<dyn Any>>`.
 Because types serve as "keys", recovering actual value is a straightforward [`Any::downcast_ref`][std:any].
 The problem for us is how to lift it to compile-time.
-To use approach as-is we need some sort of compile-time hash-based lookup over arbitrary set of hashes 
-which is a bit ridiculous.
 
-Instead, let's impose a constraint: **every capability must be declared in code before being used**.
+Let's impose a constraint: **every capability must be declared in code before being used**.
 It doesn't really introduce a limitation, as this is an implicit assumption behind most contexts visions anyways.
 However, it allows us to know all capabilities that can ever appear in the program.
 This also means we already know all acceptable keys for the map, 
@@ -127,7 +122,7 @@ trait Put<T, N: Indexed> {
 }
 ```
 
-They *do* have to be traits: `get()` output type depends on index and `put()` changes type of container altogether. 
+They *do* have to be traits: `get`'s output type depends on index and `put` changes type of container altogether. 
 
 The tuple itself looks like this:
 
@@ -236,7 +231,7 @@ impl Capability for __interner {
 
 ## `CxFn*` family core  
 
-Shape of `CxFn*` trait contains another big change.
+Shape of `CxFn*` trait is key to this approach.
 
 Observations:
 * Every contextual function can always define a minimal set of capabilities required to execute it.
@@ -270,7 +265,7 @@ pub trait CxFn<Args>: CxFnMut<Args> {
 These traits are already functional, although incomplete.
 Context may contain "free" lifetimes that are not attached to anything within the trait,
 which causes compiler to rightfully complain.
-There are other design concerns too, so we will come back to solve this issue in a moment.
+There are other design concerns too, so we will come back to resolve this issue in a moment.
 
 ## Finishing `Store`
 
@@ -441,7 +436,7 @@ Under the assumption that both handles refer to the same data, we can do it piec
 
 If handles refer to different data, then unification should fail.
 We cannot guarantee that, but it isn't a problem.
-This can only occur if you mistakenly assign the same hash/context slot to two different capabilities.
+This can only occur if you mistakenly assign the same index/context slot to two different capabilities.
 
 I should also mention that rule about `T = U` can be relaxed, we will talk about it in section about 
 [generic capabilities](#generic).
@@ -500,7 +495,7 @@ let alloc: &__alloc = &__alloc_helper(std::alloc::Global);
 ```
 
 Helper type is required to provide unsizing coercion.
-See relevant [Rustonomicon pages][rustonomicon:dst].
+See [relevant Rustonomicon pages][rustonomicon:dst].
 
 [rustonomicon:dst]: https://doc.rust-lang.org/nomicon/exotic-sizes.html#dynamically-sized-types-dsts 
 
@@ -877,7 +872,8 @@ Such context is defined by trait implementor, it allows them to request any set 
 (and it can be different between different implementors).
 
 It also makes sense that wildcard contexts are most desirable.
-This is what enables us to freely pass capabilities through call stack.
+Often, trait implementors are going to be in other crate, far away from trait definition,
+possibly using capabilities that trait itself have no information about.
 Considering how popular trait usage is in Rust, without wildcard contexts the feature can never succeed.
 So, we would like to ensure it works.
 
@@ -1119,7 +1115,7 @@ This point definitely cannot be overlooked.
 
 ## `CxFn*` traits
 
-The other approach is to embed those capability lifetimes directly into `CxFn*` traits:
+The other approach is to embed capability lifetimes directly into `CxFn*` traits:
 
 ```rust
 pub trait CxFnOnce<'_0, '_1, '_2, '_3, Args> {
