@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://haibane-tenshi.github.io/sitemap.xml

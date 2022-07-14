@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title>haibane_tenshi&#x27;s blog - Futuristic Rust: context emulation</title>
+
+      
+
+      
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+          
+      
+
+      
+          <link rel="stylesheet" href="https://haibane-tenshi.github.io/site.css">
+          
+      
+
+      
+      
+    </head>
+
+    <body>
+        <div class="container">
+
+            <div id="mobile-navbar" class="mobile-navbar">
+              <div class="mobile-header-logo">
+                <a href="/" class="logo">Thoughts with wings</a>
+              </div>
+              <div class="mobile-navbar-icon icon-out">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <nav id="mobile-menu" class="mobile-menu slideout-menu slideout-menu-left">
+              <ul class="mobile-menu-list">
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                            Home
+                        </a>
+                    </li>
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                            Tags
+                        </a>
+                    </li>
+                
+              </ul>
+            </nav>
+
+            <header id="header">
+                <div class="logo"><a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">Thoughts with wings</a></div>
+                <nav class="menu">
+                    <ul>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                                    Home
+                                </a>
+                            </li>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                                    Tags
+                                </a>
+                            </li>
+                        
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <div class="content" id="mobile-panel">
+                    
+
+
+<div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">Contents</h2>
+    <div class="post-toc-content always-active">
+        <nav id="TableOfContents">
+            <ul>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#a-couple-of-notes" class="toc-link">A couple of notes</a>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#representation" class="toc-link">Representation</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#capabilities" class="toc-link">Capabilities</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#traits-context" class="toc-link">Traits: context</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#traits-cxfn-family" class="toc-link">Traits: CxFn* family</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#desugaring" class="toc-link">Desugaring</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#concrete-functions" class="toc-link">Concrete functions</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#constraint-propagation" class="toc-link">Constraint propagation</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#traits" class="toc-link">Traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#context-creation" class="toc-link">Context creation</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#interaction-with-other-language-parts" class="toc-link">Interaction with other language parts</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#fn-traits" class="toc-link">Fn* traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#closures" class="toc-link">Closures</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#callbacks" class="toc-link">Callbacks</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#multithreading-and-async" class="toc-link">Multithreading and async</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#visibility" class="toc-link">Visibility</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#defaults" class="toc-link">Defaults</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#defaults-and-main" class="toc-link">Defaults and main</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#object-safety" class="toc-link">Object safety</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#fn-pointers" class="toc-link">fn pointers</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts/#ffi" class="toc-link">FFI</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#potential-breakage" class="toc-link">Potential breakage</a>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#case-study-global-allocator" class="toc-link">Case study: global allocator</a>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts/#conclusions" class="toc-link">Conclusions</a>
+                    
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<article class="post">
+    
+    <header class="post__header">
+        <h1 class="post__title">
+            <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-contexts&#x2F;">Futuristic Rust: context emulation</a>
+        </h1>
+        <div class="post__meta">
+            <span class="post__time">2021-12-26</span>
+            
+        </div>
+    </header>
+
+    <div class="post-content">
+      <p>Following recent discussion of <a href="https://tmandry.gitlab.io/blog/posts/2021-12-21-context-capabilities/">contexts</a>
+and <a href="https://jam1.re/blog/thoughts-on-contexts-and-capabilities-in-rust">capabilities</a>,
+let us explore a potential design within current reach of Rust.</p>
+<span id="continue-reading"></span>
+<p>Exploring concrete desugaring can help us find the limits and answer some of those difficult questions
+that were raised.
+This isn't a concrete proposal, rather an attempt to emulate contexts in today's stable Rust.</p>
+<h2 id="a-couple-of-notes">A couple of notes</h2>
+<ul>
+<li>
+<p>Here's the <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=cc8a4d2e3fb8033f3a1618009ac02e26">playground</a>
+which I used for exploration (warning: <strong>very</strong> NSFW).</p>
+</li>
+<li>
+<p>The following approach can be summarized as &quot;capability is a variable living on the stack and passed to you by the caller as an extra parameter&quot;.
+This is not the only possible interpretation.
+(Update 28.12.2021: clarification)</p>
+</li>
+<li>
+<p>We will use global allocator as a strawman for typical use.
+Allocation is one of the more pervasive ambient capabilities in every program,
+so it makes for perfect target to test the design.
+Especially, we would like to consider repercussions of switching from &quot;old&quot; global-<code>static</code>-based implementation
+to new shiny <code>alloc</code> capability.</p>
+</li>
+</ul>
+<h2 id="representation">Representation</h2>
+<h3 id="capabilities">Capabilities</h3>
+<p>In order to encode presence of capability we need to lift it into type system.
+The easiest way to achieve that is newtype wrapper:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span>capability alloc: GlobalAllocator; </span><span>
+</span></code></pre>
+<p>expands into</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__alloc(GlobalAllocator);</span><span>
+</span></code></pre>
+<p>Very straightforward.</p>
+<h3 id="traits-context">Traits: context</h3>
+<p>We should be able to call a function from different places with potentially different contexts,
+so it makes sense for context to be generic.
+On the other hand, we also need to be able to extract capabilities from it - that's the whole point.
+We can achieve this with <code>Get</code> trait:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>Get&lt;&#39;a, T&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">&#39;a</span><span> T;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>It is important to bundle lifetime along the reference - we don't want to be bound to lifetime of context itself.</p>
+<p>You may ask, what about mutable references or taking by value?
+It seems like very natural extensions and indeed are already proposed in <a href="https://jam1.re/blog/thoughts-on-contexts-and-capabilities-in-rust">this post</a>,
+but both introduce a big complication: we need to be able to <em>move out</em> of context.
+This is not easy to achieve while keeping all the machinery working and probably warrants a separate exploration post.
+For now, let's swipe it under the rug.</p>
+<p>It is probably far from final design, but this simple trait should be able to get us started. 
+Combining with previous section we can already express capability requirements as normal <code>where</code> blocks:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">f</span><span>&lt;Cx&gt;(</span><span style="color:#bf616a;">args</span><span>: (), </span><span style="color:#bf616a;">cx</span><span>: Cx)</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; Cx: Get&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, __interner&gt;,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">let</span><span> alloc: &amp;__interner = cx.</span><span style="color:#96b5b4;">get</span><span>();</span><span>
+</span><span>    </span><span style="color:#65737e;">// We can now use `alloc` to allocate, nice!</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<h3 id="traits-cxfn-family">Traits: <code>CxFn*</code> family</h3>
+<p>In Rust functions and operators are expressed as traits, so we will probably need traits for our new functions too.
+Let's call new traits <code>CxFn</code>, <code>CxFnMut</code> and <code>CxFnOnce</code> (or <code>CxFn*</code> family) standing for &quot;contextual function&quot;.
+I can already sense bikeshedding team mobilize.</p>
+<p>They closely follow <code>Fn*</code> family for obvious reason and defined like following:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>CxFnOnce&lt;Args, Cx&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: Cx) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>CxFnMut&lt;Args, Cx&gt;: CxFnOnce&lt;Args, Cx&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: Cx) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>CxFn&lt;Args, Cx&gt;: CxFnMut&lt;Args, Cx&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: Cx) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This looks quite natural: we preserve existing relationship within <code>Fn*</code> trait family and traits look very much alike
+just with an addition of extra <code>Cx</code> parameter.</p>
+<p>There are probably a few points which capture your attention.</p>
+<p>First, it may feel more appropriate to put <code>Cx</code> as generic bound on <em>method</em> instead of trait,
+but that gives us wrong semantics.
+<code>Cx</code> param on method says &quot;function is callable with every possible <code>Cx</code> as long as trait is implemented&quot;,
+however this is wrong.
+What we want to say &quot;function is callable only with <em>good</em> <code>Cx</code>&quot;,
+i.e. it needs to conditionally implement trait depending on context.</p>
+<p>Second, we take <code>Cx</code> by value.
+This is analogous to normal arguments, any kind of more sophisticated ownership control will come from individual
+fields inside the context.</p>
+<h2 id="desugaring">Desugaring</h2>
+<h3 id="concrete-functions">Concrete functions</h3>
+<p>Let's put it all together:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">foo</span><span>() </span><span>
+</span><span>with &amp;alloc</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">let</span><span> mem = alloc.</span><span style="color:#96b5b4;">allocate</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>becomes</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__foo;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;Cx&gt; CxFn&lt;(), Cx&gt; </span><span style="color:#b48ead;">for </span><span>__foo</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; Cx: Get&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, __alloc&gt;,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, (): (), </span><span style="color:#bf616a;">cx</span><span>: Cx) {</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> __a: &amp;__alloc = cx.</span><span style="color:#96b5b4;">get</span><span>();</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> alloc = &amp;__a.</span><span style="color:#d08770;">0</span><span>;</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> mem = alloc.</span><span style="color:#96b5b4;">allocate</span><span>();</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>I omitted implementations of <code>CxFnOnce</code> and <code>CxFnMut</code> as they are analogous.
+I will do so for future examples too to keep it brief.</p>
+<p>Observations:</p>
+<ol>
+<li>
+<p>All functions taking contexts are generic by necessity, but we already implied that.</p>
+</li>
+<li>
+<p>Capabilities translate into trait bounds,
+so you <strong>must</strong> specify capability if you use it directly.
+This is very much like Rust, it forces you to explicitly state your intentions.</p>
+</li>
+<li>
+<p>You <strong>must</strong> explicitly specify desired ownership for every capability.
+I use fictional <code>&amp;alloc</code> syntax (by analogy with <code>self</code>; you can imagine how <code>&amp;mut alloc</code> and <code>alloc</code> would work).
+This is again analogous to normal parameters.</p>
+</li>
+<li>
+<p>I sneaked an extra feature into the example and the expansion should give you a clue.
+This is Rust, so what's your first thought when you see a reference?
+Right, where's the lifetime?!
+We are pampered by compiler who elides them in so many places, but this is new territory.</p>
+<p>In this case, there is no need to trace lifetime of <code>alloc</code> through <code>foo</code> (it returns a unit type)
+which is expressed in HRTB bound: <code>alloc</code>'s reference can have any lifetime, we don't care.</p>
+</li>
+<li>
+<p>However, if <code>foo</code> returns anything referring to <code>alloc</code> it <strong>must</strong> be generic over <code>alloc</code>'s lifetime:</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>fn foo&lt;&#39;a&gt;() -&gt; &amp;&#39;a [u8]</span><span>
+</span><span>with &amp;&#39;a alloc</span><span>
+</span><span>{</span><span>
+</span><span>    // ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This is part of the reason why explicitly specifying desired ownership is so important: compiler needs to know this
+information in order to properly calculate lifetimes.</p>
+</li>
+</ol>
+<h3 id="constraint-propagation">Constraint propagation</h3>
+<p>The interesting part is how we propagate constraints up.
+Let's take a look:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar</span><span>() {</span><span>
+</span><span>    </span><span style="color:#96b5b4;">foo</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>translates into</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__bar;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;Cx&gt; CxFn&lt;(), Cx&gt; </span><span style="color:#b48ead;">for </span><span>__bar</span><span>
+</span><span style="color:#b48ead;">where </span><span>
+</span><span>    __foo: CxFn&lt;(), Cx&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    __foo.</span><span style="color:#96b5b4;">cx_call</span><span>((), cx)</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>The magic happens in <code>where</code> clause.
+Normally in generic code if a function has <code>Cx: Trait</code> bound you replicate it on caller,
+but that states constraint explicitly as opposed to smuggling it through.
+Instead, we do something rather roundabout: we just require that <em><code>foo</code> is callable with current context</em>.
+Compiler is smart and will deduce required bound on <code>bar</code> from bound on <code>foo</code>.</p>
+<p>There is a peculiar thought to be had here.
+Unlike with previous case this extra bound on <code>bar</code> is added silently which can be upsetting to explicit gang.
+We can consider to explicitly write it in <code>bar</code>'s signature</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar</span><span>()</span><span>
+</span><span>with foo </span><span style="color:#65737e;">// some arbitrary syntax</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#96b5b4;">foo</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>but this will probably take it to untenable level of verbosity besides being a SemVer hazard.
+It will also look somewhat weird to read, we write: <code>foo</code> must be callable to call <code>bar</code>.
+Newcomers without knowledge of contexts will likely get greatly confused.</p>
+<h3 id="traits">Traits</h3>
+<p>Traits are difficult.
+Major part of this difficulty is that we don't have a natural syntax to express methods as function objects.</p>
+<p>We can surmise that applying <code>with</code> on trait <em>definition</em> simply reapplies bound to all methods - 
+there is no shared <code>Cx</code> type at trait level, so this is the only possible behaviour.
+But <code>with</code> on trait <em>implementation</em> looks like a huge can of worms,
+so let's swipe it under that rug too for the time being.</p>
+<h3 id="context-creation">Context creation</h3>
+<p>One last bit to look at is context creation.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span>with alloc = GlobalAllocator::new() {</span><span>
+</span><span>    </span><span style="color:#96b5b4;">foo</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>becomes</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#65737e;">// This is the context from outer scope.</span><span>
+</span><span style="color:#b48ead;">let</span><span> __outer_cx: __OuterCx;</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">let</span><span> alloc = </span><span style="color:#96b5b4;">__alloc</span><span>(GlobalAllocator::new());</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">struct </span><span>__ScopedContext&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;outer</span><span>, OuterCx&gt; {</span><span>
+</span><span>        </span><span style="color:#bf616a;">__outer</span><span>: &amp;</span><span style="color:#b48ead;">&#39;outer</span><span> OuterCx,</span><span>
+</span><span>        </span><span style="color:#bf616a;">alloc</span><span>: &amp;</span><span style="color:#b48ead;">&#39;a</span><span> __alloc,</span><span>
+</span><span>    }</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;outer</span><span>, OuterCx&gt; Get&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, __alloc&gt; </span><span style="color:#b48ead;">for </span><span>__ScopedContext&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;outer</span><span>, OuterCx&gt; {</span><span>
+</span><span>        </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">&#39;a</span><span> __alloc {</span><span>
+</span><span>            </span><span style="color:#bf616a;">self</span><span>.alloc</span><span>
+</span><span>        }</span><span>
+</span><span>    }</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;outer</span><span>, OuterCx&gt; Deref </span><span style="color:#b48ead;">for </span><span>__ScopedContext&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;outer</span><span>, OuterCx&gt; {</span><span>
+</span><span>        </span><span style="color:#b48ead;">type </span><span>Target = OuterCx;</span><span>
+</span><span>    </span><span>
+</span><span>        </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">deref</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">Self::</span><span>Target {</span><span>
+</span><span>            </span><span style="color:#bf616a;">self</span><span>.__outer</span><span>
+</span><span>        }</span><span>
+</span><span>    }</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">let</span><span> __cx = __ScopedContext {</span><span>
+</span><span>        __outer: &amp;__outer_cx,</span><span>
+</span><span>        alloc: &amp;alloc,</span><span>
+</span><span>    };</span><span>
+</span><span>
+</span><span>    __foo.</span><span style="color:#96b5b4;">cx_call</span><span>((), __cx)</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Quite straightforward, again.</p>
+<p><code>Deref</code> impl allows us to &quot;inherit&quot; getters from outer context.
+Don't worry about overlapping <code>Get</code> implementations between two contexts: requested method will be tried against 
+current context first before dereferencing.
+The mechanism at play here is resemblant of 
+<a href="https://github.com/dtolnay/case-studies/tree/master/autoref-specialization">autoref specialization</a>.</p>
+<h2 id="interaction-with-other-language-parts">Interaction with other language parts</h2>
+<p>The fun part.</p>
+<h3 id="fn-traits"><code>Fn*</code> traits</h3>
+<p>Because <code>Fn*</code> traits don't accept context parameter, we can think of them as contextual functions callable
+with empty context.
+This brings us to redefinition:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>FnOnce&lt;Args&gt;: CxFnOnce&lt;Args, ()&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>FnMut&lt;Args&gt;: FnOnce&lt;Args&gt; + CxFnMut&lt;Args, ()&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>Fn&lt;Args&gt;: FnMut&lt;Args&gt; + CxFn&lt;Args, ()&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;Args, T&gt; FnOnce&lt;Args&gt; </span><span style="color:#b48ead;">for </span><span>T</span><span>
+</span><span style="color:#b48ead;">where</span><span> T: CxFnOnce&lt;Args, ()&gt;,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#96b5b4;">cx_call_once</span><span>(args, ())</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;Args, T&gt; FnMut&lt;Args&gt; </span><span style="color:#b48ead;">for </span><span>T </span><span>
+</span><span style="color:#b48ead;">where</span><span> T: CxFnMut&lt;Args, ()&gt;,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#96b5b4;">cx_call_mut</span><span>(args, ())</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;Args, T&gt; Fn&lt;Args&gt; </span><span style="color:#b48ead;">for </span><span>T</span><span>
+</span><span style="color:#b48ead;">where</span><span> T: CxFn&lt;Args, ()&gt;,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#96b5b4;">cx_call</span><span>(args, ())</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Even blanket impls are possible!
+We expect implementation of <code>CxFn*</code> to be generic over <em>all possible</em> <code>Cx</code> it can accept,
+so it is only required to test one.
+Unit type is perfect.</p>
+<p>Observations:</p>
+<ul>
+<li>Every function now implements <code>CxFn* + ?Fn*</code> bound instead of <code>Fn*</code>.</li>
+<li>Which means <code>CxFn*</code> trait is now defining characteristic of being a function, not <code>Fn*</code>.
+I guess it's a good thing <code>unboxed_closures</code> and <code>fn_traits</code> are not stabilized?
+Also writing function objects just became even harder.</li>
+<li>Most functions just stopped being <code>Fn*</code> too: our global allocator capability made sure of that.
+We will look at repercussions in a second.</li>
+</ul>
+<h3 id="closures">Closures</h3>
+<p>The defining mechanic of closures is capture of local variables.
+Context is also desugared into a local variable, so it should be able to hack into existing capture mechanism.
+This feels like most natural behaviour, and it is likely to align with user expectations.</p>
+<p>This brings important implications:</p>
+<ul>
+<li>Closures always implement <code>Fn*</code>.
+This is a very important property to preserve (at least by default) otherwise all callback-based code 
+will probably break.</li>
+<li>Therefore, closures is the primary mechanism for constructing <code>Fn*</code> functions.</li>
+<li>Calling a closure represents discontinuity in context propagation.</li>
+<li>Closures have to rely on compiler magic to capture minimal context, but that is already expected for normal captures.
+Still it potentially presents a bit more work for compiler due to context bundling/unbundling. </li>
+<li>Context is part of closure capture, which means automatic propagation of lifetimes and auto-traits.</li>
+</ul>
+<p>Latter is really cool to get out of the box.
+Imagine writing this code:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">foo</span><span>() -&gt; impl Fn() {</span><span>
+</span><span>    with cx = MyContext::new() {</span><span>
+</span><span>        || cx.</span><span style="color:#96b5b4;">do_something</span><span>()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Compiler can immediately flag this <em>using already existing error</em>:
+&quot;<a href="https://doc.rust-lang.org/stable/error-index.html#E0373">[E0373]</a>:
+closure may outlive the current function, but it borrows <code>cx</code> ...&quot;,
+and suggest you explicitly move context into closure instead.</p>
+<p>But what about <em>contextual closures</em>?
+Surely, there is some madman out there already contemplating a use for them.
+Unfortunately it implies we are able to construct a closure generic over <code>Cx</code> type,
+but we will need to figure out how to make generic closures first.
+I haven't seen any RFC on the subject, but it may be in the works somewhere.</p>
+<h3 id="callbacks">Callbacks</h3>
+<p>Callbacks can choose whether they want to propagate their own context or not.
+Because whole ecosystem currently lives with <code>Fn*</code>, this will probably become the golden standard.</p>
+<p>Thanks to <code>alloc</code>, it is also almost impossible to use normal functions as callbacks, which can break existing code.
+Mitigation is easy: just wrap your callback in closure so it captures all necessary context.</p>
+<p>Contextual callbacks is a potential direction for future, but without contextual closures such API is <em>hard</em> to use
+on caller side.</p>
+<h3 id="multithreading-and-async">Multithreading and <code>async</code></h3>
+<p>Now, what about sending functions to other threads?
+Currently <code>thread::spawn</code> is defined as </p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">spawn</span><span>&lt;F, T&gt;(</span><span style="color:#bf616a;">f</span><span>: F) -&gt; JoinHandle&lt;T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    F: FnOnce() -&gt; T,</span><span>
+</span><span>    F: Send + </span><span style="color:#b48ead;">&#39;static</span><span>,</span><span>
+</span><span>    T: Send + </span><span style="color:#b48ead;">&#39;static</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#65737e;">//...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>and I think it doesn't have to change.</p>
+<p>You can think of contexts as extra information necessary for computation which is passed to a function by its parent.
+But by sending <code>f</code> to another thread it itself becomes the root of call tree and single source of truth;
+it doesn't have a parent to ask about (and no, <code>main</code> doesn't count - it may have terminated long ago!).
+It should have all necessary information baked in by the time we send it over.
+And this is exactly what <code>FnOnce</code> bound implies: function is self-sufficient.</p>
+<p>Scoped threads <em>can</em> provide a parent function to ask for context,
+but conceptually it at most lifts <code>'static</code> bound on <code>f</code>.
+Context still needs to be shared and passed over somehow,
+so it makes sense to bake it into function call or function object itself,
+which leads to <code>FnOnce</code> bound once more.</p>
+<p>By extension, <code>main</code> should also implement <code>Fn</code> but that can be argued, we will come back to this point in a moment.</p>
+<p>What about <code>Send</code> (or <code>'static</code>)?
+<code>Send</code> on the closure translates naturally onto <code>Send</code> on captures, which includes <code>Cx</code> type -
+and compiler can take it from there.
+On the other hand, function can directly set a capability instead of capture, leading to a thread-local value.
+This is a very nice result, programmer is still in control of what is happening:
+every capability can be shared or thread-local depending on how you use it.</p>
+<p>Situation with async is mostly identical.</p>
+<h3 id="visibility">Visibility</h3>
+<p>Visibility leans into already existing visibility for types and works just like you expect.
+This snippet</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">mod </span><span>private {</span><span>
+</span><span>    </span><span style="color:#65737e;">// not pub</span><span>
+</span><span>    capability interner: Interner;</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">foo</span><span>()</span><span>
+</span><span>    with &amp;interner</span><span>
+</span><span>    {}</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>causes public function <code>foo</code> to have <code>where Cx: Get&lt;__interner&gt;</code> block on <code>CxFn</code> impl.
+But that is already flagged by compiler:
+&quot;<a href="https://doc.rust-lang.org/stable/error-index.html#E0446">[E0446]</a>: private type <code>__interner</code> in public interface&quot;.</p>
+<p>Which implies that any public functions have to take care and properly set every private capability
+in case they want to use it or call any other function that do.
+Great!</p>
+<h3 id="defaults">Defaults</h3>
+<p>What about global defaults?
+Most programs are probably content having a global allocator set for it by <code>std</code>.
+Can we do this?</p>
+<p>Sure, there are two simple steps:</p>
+<ol>
+<li>Provide initializer value.
+It must be const evaluatable, remember
+<a href="https://doc.rust-jp.rs/the-rust-programming-language-ja/1.9/complement-design-faq.html#there-is-no-life-before-or-after-main-no-static-ctorsdtors">rule 1.4</a>:
+no life before <code>main</code>.</li>
+<li>Write <code>with interner = Capability::default()</code> on top of your function.</li>
+</ol>
+<p>Wait, what? Where did my default go? Isn't setting it by hand defeats the point?</p>
+<p>To understand the problem, consider this example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">mod </span><span>private {</span><span>
+</span><span>    capability interner: Interner = Interner::new();</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">foo</span><span>() {</span><span>
+</span><span>        interner.</span><span style="color:#96b5b4;">intern</span><span>(&quot;</span><span style="color:#a3be8c;">s</span><span>&quot;);</span><span>
+</span><span>    }</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">bar</span><span>() {</span><span>
+</span><span>        with interner = Interner::other() {</span><span>
+</span><span>            </span><span style="color:#96b5b4;">foo</span><span>()</span><span>
+</span><span>        }</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {</span><span>
+</span><span>    </span><span style="color:#96b5b4;">bar</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Alright, let's unpack.</p>
+<p>First, <code>interner</code> is private to module.
+As we already deduced, it cannot appear in public APIs.
+Second, compiler sees public <code>foo</code> which has unsatisfied capability <code>interner</code>, so it must be set before the call.
+However, when <code>foo</code> is called from outside, <code>interner</code> cannot be part of accepted context due to visibility, 
+so <code>interner</code> can only be set inside <code>foo</code>.
+Third, <code>interner</code> has a default, so user expects this to be automatically set.
+Following this logic, compiler silently adds <code>with interner = Capability::default()</code> to the top of <code>foo</code>
+as the only way to provide the default.</p>
+<p>Now, when we call <code>bar</code> it sets <code>interner</code> but that gets immediately overridden inside <code>foo</code>.
+What an elegant footgun, activated by simply adding a <code>pub</code>!
+All of this happened because compiler tried to second-guess what we mean.
+Let's keep it explicit, shall we?</p>
+<p>Should default be represented as <code>static</code>/<code>const</code> variable?
+It doesn't really matter for private capabilities, but for public ones it depends on interaction with <code>main</code>.</p>
+<h3 id="defaults-and-main">Defaults and <code>main</code></h3>
+<p>If capability is reachable from <code>main</code> and have a default we call it <em>ambient capability</em>.
+Naming is analogous to <em>ambient authority</em>, it represents a capability which is always naturally available.</p>
+<p>This is one case where this explicitness certainly hurts.</p>
+<p>In case we guarantee that <code>main</code> requires no context, 
+every ambient capability provided by any of your dependencies must be set by hand.
+Ambient capabilities are extremely pervasive, so it is preferable to set them on top of <code>main</code>.
+But many applications don't even have access to the function!</p>
+<p>And then, just imagine starting every doc-test with </p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {</span><span>
+</span><span>    </span><span style="color:#65737e;">// We probably need allocations, right?</span><span>
+</span><span>    with alloc = Capability::default() {</span><span>
+</span><span>        </span><span style="color:#65737e;">//...</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Options are not very abundant:</p>
+<ul>
+<li>We can rely on compiler to enumerate all existing ambient capabilities and silently add them on top of <code>main</code> -
+for everyone's sanity.</li>
+<li>Alternatively, we can drop <code>Fn</code> requirement on <code>main</code> and pass in some prebaked global context
+(which should be acceptable if all capability defaults are const-evaluatable).</li>
+</ul>
+<p>Personally I don't like the second option: it doesn't provide a natural way to leave undesired capabilities unset,
+so some other use cases may suffer.
+For example, having compiler automatically set default allocator in a kernel sounds like a <em>terrible</em> idea.</p>
+<h3 id="object-safety">Object safety</h3>
+<p>Contextual functions are not object safe.
+Shouldn't be a surprise - we cannot predict with which concrete type of <code>Cx</code> it will be called while being type-erased.
+The only way to make them object safe is to turn <code>Cx</code> into trait object:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__foo;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>__MyContext: Get&lt;__alloc&gt; + Get&lt;__interner&gt; {}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>CxFn&lt;(), Box&lt;dyn __MyContext&gt;&gt; </span><span style="color:#b48ead;">for </span><span>__foo {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, (): (), </span><span style="color:#bf616a;">cx</span><span>: Box&lt;dyn __MyContext&gt;) {</span><span>
+</span><span>        </span><span style="color:#65737e;">//...</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>But this looks like a lot of extra magic and a lot of extra discussions.</p>
+<h3 id="fn-pointers"><code>fn</code> pointers</h3>
+<p>ZST <code>Fn</code> objects can be converted to <code>fn</code> pointers.
+Since almost no normal functions implement <code>Fn</code> now, they are not convertible to <code>fn</code> either.
+This is OK with me, but not so OK with FFI gang.</p>
+<h3 id="ffi">FFI</h3>
+<p>FFI requires function pointers, function pointers require <code>Fn</code>.
+I offhandedly mentioned that most normal functions don't implement <code>Fn</code>, but it doesn't mean we cannot craft one.
+We just need to make sure it is callable with empty context, so it is enough to set all required capabilities
+at the beginning of the function to achieve that:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">ffi_safe</span><span>() {</span><span>
+</span><span>    with </span><span>
+</span><span>        alloc = GlobalAllocator::new(),</span><span>
+</span><span>        interner = Interner::new()</span><span>
+</span><span>    {</span><span>
+</span><span>        </span><span style="color:#65737e;">// we can now call contextual functions which use `alloc` or `interner`</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>In other words, it means all exported functions <strong>must</strong> properly set all required capabilities on Rust side.
+This makes a lot of sense: even if we allow other language to do it, how do they know how to do it correctly?</p>
+<p>The problem here is already existing FFI-exported functions - every single one will get broken as soon as some of the
+more contagious capabilities get introduced (like <code>alloc</code>).
+Some cases may require creating extra wrappers as well.</p>
+<p>There is another interesting implication: Rust-to-Rust communication through FFI naturally does not share global
+context - each side is required to set its own when being called by the other.
+This, surprisingly, also makes a lot of sense.
+Anyone who happened to debug global statics in dynlibs in C++ 
+<a href="https://stackoverflow.com/questions/19373061/what-happens-to-global-and-static-variables-in-a-shared-library-when-it-is-dynam">will understand</a>.
+This also begets a thought, that if direct Rust-to-Rust communication ever happens it <em>probably</em> should follow the suit.</p>
+<h2 id="potential-breakage">Potential breakage</h2>
+<p>So, what happens if we suddenly move <code>std</code> to use <code>alloc</code> capability?
+Lots of stuff breaks:</p>
+<ul>
+<li>All of exported FFI</li>
+<li>Normal functions as callbacks - auto-fixable.</li>
+<li>Certain closure uses - sometimes auto-fixable.</li>
+</ul>
+<p>Because closures now silently capture more things, it can lead to breakage 
+when multiple closures are converted to <code>fn</code> pointers:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> f: </span><span style="color:#b48ead;">fn</span><span>() -&gt; Vec&lt;_&gt; = </span><span style="color:#b48ead;">if</span><span> cond {</span><span>
+</span><span>    </span><span style="color:#65737e;">// Doesn&#39;t allocate, ok!</span><span>
+</span><span>    || Vec::new()</span><span>
+</span><span>} </span><span style="color:#b48ead;">else </span><span>{</span><span>
+</span><span>    </span><span style="color:#65737e;">// Oops, this now have to capture `alloc` capability</span><span>
+</span><span>    || vec![</span><span style="color:#d08770;">0_</span><span style="color:#b48ead;">usize</span><span>, </span><span style="color:#d08770;">1</span><span>, </span><span style="color:#d08770;">2</span><span>, </span><span style="color:#d08770;">3</span><span>]</span><span>
+</span><span>};</span><span>
+</span></code></pre>
+<p>Capturing any context is enough to prevent it from being convertible to a function pointer.
+This example is stupid, but I actually used this approach a couple of times in my own projects,
+it simplifies functional-style processing.</p>
+<p>Fixing this in general case is hard.
+You can try to define closures outside of <code>if</code>/<code>match</code> and convert them to <code>dyn Fn</code> instead:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let </span><span style="color:#8fa1b3;">first </span><span>= || Vec::new();</span><span>
+</span><span style="color:#b48ead;">let </span><span style="color:#8fa1b3;">second </span><span>= || vec![</span><span style="color:#d08770;">0_</span><span style="color:#b48ead;">usize</span><span>, </span><span style="color:#d08770;">1</span><span>, </span><span style="color:#d08770;">2</span><span>, </span><span style="color:#d08770;">3</span><span>];  </span><span>
+</span><span>
+</span><span style="color:#b48ead;">let</span><span> f: &amp;dyn Fn() -&gt; Vec&lt;_&gt; = </span><span style="color:#b48ead;">if</span><span> cond {</span><span>
+</span><span>    &amp;first    </span><span>
+</span><span>} </span><span style="color:#b48ead;">else </span><span>{</span><span>
+</span><span>    &amp;second</span><span>
+</span><span>};</span><span>
+</span></code></pre>
+<p>but capturing variable local to branches makes boxing hard to avoid.</p>
+<h2 id="case-study-global-allocator">Case study: global allocator</h2>
+<p>On the closing note, let's try to actually implement global allocator as capability. </p>
+<p>Global allocator is determined by <a href="https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html"><code>GlobalAlloc</code></a> trait,
+so global allocator itself is just a vtable (+possibly some data).
+To allow overriding we need type erasure;
+the textbook solution is to use <code>Box&lt;dyn GlobalAlloc&gt;</code> trait object, but we can't, creating box requires allocation!
+Instead, we have to keep it as a reference only:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub</span><span> capability alloc: &amp;dyn GlobalAlloc;</span><span>
+</span></code></pre>
+<p>However, there is something our pedantic compiler will not be happy with.
+If this is a reference, how long does it live?</p>
+<p>Well...
+For how long referenced object lives.
+Proper solution (and we are getting way ahead of current discussion!) is to make it generic over lifetime:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub</span><span> capability alloc&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt;: &amp;</span><span style="color:#b48ead;">&#39;a</span><span> dyn GlobalAlloc;</span><span>
+</span></code></pre>
+<p>It would allow you to optionally override global allocator with locally-scoped variant (even using stack memory!),
+but for now let's set it to <code>'static</code>.
+This will provide us with the same overall semantics as <code>#[global_allocator]</code>.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub</span><span> capability alloc: &amp;</span><span style="color:#b48ead;">&#39;static</span><span> dyn GlobalAlloc;</span><span>
+</span></code></pre>
+<p>Setting default is the easy part: <code>std</code>'s default allocator is ZST, so we can just put it in:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub</span><span> capability alloc: &amp;</span><span style="color:#b48ead;">&#39;static</span><span> dyn GlobalAlloc = &amp;std::alloc::alloc::Global;</span><span>
+</span></code></pre>
+<h2 id="conclusions">Conclusions</h2>
+<p>This looks fun and way more tractable that it looked at first.
+Rust still keeps surprising me in how <em>powerful</em> it is!</p>
+<p>There is certainly a lot more to investigate (interaction with lifetimes? generic code? constraining as part of trait?
+mutable/by-value contexts?), but this post is already way too long. </p>
+<p>Hope you had fun too, see you next time!</p>
+
+    </div>
+
+    
+    
+
+    <div class="post-footer">
+        
+            
+                <div class="post-tags">
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/rust/">#rust</a>
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/contexts/">#contexts</a>
+                    
+                </div>
+            
+            
+                <div class="post-nav">
+                    
+                    
+                        <a class="next" href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-early-and-late-bound-generics&#x2F;">Obscure Rust: early- and late-bound generics in functions ›</a>
+                    
+                    
+                    
+                </div>
+            
+
+        
+
+    </div>
+
+    
+    
+</article>
+
+
+                </div>
+            </main>
+
+            
+            
+        </div>
+
+      
+          <script type="text/javascript" src="https://haibane-tenshi.github.io/even.js" ></script>
+      
+    </body>
+
+</html>

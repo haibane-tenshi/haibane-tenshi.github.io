@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title>haibane_tenshi&#x27;s blog - Obscure Rust: early- and late-bound generics in functions</title>
+
+      
+
+      
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+          
+      
+
+      
+          <link rel="stylesheet" href="https://haibane-tenshi.github.io/site.css">
+          
+      
+
+      
+      
+    </head>
+
+    <body>
+        <div class="container">
+
+            <div id="mobile-navbar" class="mobile-navbar">
+              <div class="mobile-header-logo">
+                <a href="/" class="logo">Thoughts with wings</a>
+              </div>
+              <div class="mobile-navbar-icon icon-out">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <nav id="mobile-menu" class="mobile-menu slideout-menu slideout-menu-left">
+              <ul class="mobile-menu-list">
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                            Home
+                        </a>
+                    </li>
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                            Tags
+                        </a>
+                    </li>
+                
+              </ul>
+            </nav>
+
+            <header id="header">
+                <div class="logo"><a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">Thoughts with wings</a></div>
+                <nav class="menu">
+                    <ul>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                                    Home
+                                </a>
+                            </li>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                                    Tags
+                                </a>
+                            </li>
+                        
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <div class="content" id="mobile-panel">
+                    
+
+
+<div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">Contents</h2>
+    <div class="post-toc-content always-active">
+        <nav id="TableOfContents">
+            <ul>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#set-up" class="toc-link">Set up</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#function-shape" class="toc-link">Function shape</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#using-generics" class="toc-link">Using generics</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#importance-of-monomorphization" class="toc-link">Importance of monomorphization</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#implications" class="toc-link">Implications</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#type" class="toc-link">Type</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#lifetime" class="toc-link">Lifetime</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#higher-rank-trait-bounds" class="toc-link">Higher-rank trait bounds</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#why-late-bound-parameters-matter" class="toc-link">Why late-bound parameters matter</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#why-early-bound-parameters-matter" class="toc-link">Why early-bound parameters matter</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/#conclusions" class="toc-link">Conclusions</a>
+                    
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<article class="post">
+    
+    <header class="post__header">
+        <h1 class="post__title">
+            <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-early-and-late-bound-generics&#x2F;">Obscure Rust: early- and late-bound generics in functions</a>
+        </h1>
+        <div class="post__meta">
+            <span class="post__time">2022-06-10</span>
+            
+        </div>
+    </header>
+
+    <div class="post-content">
+      <p>This is a strange edge in type system I ran into when I was working on another attempt at representing
+<a href="https://haibane-tenshi.github.io/rust-contexts/">contexts</a>.
+If contextual functions aspire to be anything like normal ones,
+they need to properly interact with late-bound lifetimes.
+But to do that we need to understand how those work in normal functions in the first place.</p>
+<p>This is something like a third attempt at explaining this, even though the first two were a lot less formalized.
+I'm fairly confident in my claims, but I'm learning this along with you.
+If you find any mistakes make sure to tell.
+It is also important to note that I was studying this interaction from inside the language.
+So, narrative is likely to differ from the one used by whoever designed the feature.
+For language designer, late-bound lifetimes is a solution to specific problem - one out of many.</p>
+<p>And yes, guessing from the post name, there are more obscure features coming up.
+But, <em>boundness</em> first.</p>
+<h1 id="set-up">Set up</h1>
+<p>Probably the best documentation you can find on distinction between early- and late-bound generics is
+<a href="https://rustc-dev-guide.rust-lang.org/early-late-bound.html">guide to <code>rustc</code></a> development.
+Not the first resource to turn to and frankly speaking it is... eh, <em>concise</em> at best.</p>
+<p>Another reference to late-bound parameters can be found inside <a href="https://rust-lang.github.io/rfcs/0387-higher-ranked-trait-bounds.html?highlight=late%20bound#distinguishing-early-vs-late-bound-lifetimes-in-impls">HRTB RFC</a> (we will talk about them later).
+This is the only mention of late-bound generics in RFCs that I was able to find.</p>
+<p>Let's expand on them.</p>
+<h2 id="function-shape">Function shape</h2>
+<p>From the standpoint of Rust type system a typical function is zero-sized type which implements <code>Fn</code> trait:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span>#![</span><span style="color:#bf616a;">feature</span><span>(fn_traits)]</span><span>
+</span><span>#![</span><span style="color:#bf616a;">feature</span><span>(unboxed_closures)]</span><span>
+</span><span>#![</span><span style="color:#bf616a;">allow</span><span>(non_camel_case_types)]</span><span>
+</span><span>
+</span><span style="color:#b48ead;">struct </span><span>i_am_function;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>FnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>i_am_function {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: ()) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#96b5b4;">call_mut</span><span>(args)</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>FnMut&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>i_am_function {</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: ()) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#96b5b4;">call</span><span>(args)</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>Fn&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>i_am_function {</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, (): ()) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Note that we need two unstable features <code>fn_traits</code> and <code>unboxed_closures</code> to compile examples.
+ABI specifications are important but don't really matter to us.
+And, yes, this is properly integrated into the language, you can use <code>i_am_function</code> as any &quot;normal&quot; function:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {</span><span>
+</span><span>    </span><span style="color:#96b5b4;">i_am_function</span><span>() </span><span style="color:#65737e;">// This works</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>While functions implement all three <code>Fn*</code> traits, in the future I will only show <code>FnOnce</code> as
+it contains all necessary information.</p>
+<p>With this we are ready to see what exactly is happening behind the scenes.
+Time to bring in generics.</p>
+<h2 id="using-generics">Using generics</h2>
+<p>Applying generics is simple:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>generic_function&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>(&amp;</span><span style="color:#b48ead;">&#39;a</span><span> T)&gt;);</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;b</span><span>, T, U&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;b</span><span> U,)&gt; </span><span style="color:#b48ead;">for </span><span>generic_function&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (&amp;&#39;</span><span style="color:#bf616a;">b U</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Rust requires us to use generic parameters inside the struct, therefore <code>PhantomData</code>.
+Exact way it is used can get complicated to achieve correct <a href="https://doc.rust-lang.org/nomicon/subtyping.html#variance">variance</a>,
+but that is an entirely separate topic.</p>
+<p>Here you probably noticed something interesting: obviously, <code>impl</code> block requires generics on it,
+but <code>generic_function</code> type doesn't have any use for parameters.
+So the choice whether to put it there feels arbitrary.
+Both cases look valid.</p>
+<p>Situation become clearer if we give things proper names.</p>
+<p>Generics defined on function type are part of that type, they must be decided at the moment function type is resolved,
+and this might happen at a completely different place from where function is called.
+Such generics are defined <em>early</em>, hence they are <em>early-bound</em>.</p>
+<p>Generics defined on <code>impl</code> block but not on type can only be substituted when function is called.
+This can happen multiple times in different places.
+Such generics are defined <em>late</em>, hence they are <em>late-bound</em>.</p>
+<p>Process of substituting generics into function type is, well, <em>monomorphization</em>.
+Nothing surprising here.</p>
+<h2 id="importance-of-monomorphization">Importance of monomorphization</h2>
+<p>To put everything together we need to apply one last secret ingredient:</p>
+<blockquote>
+<p>Every function value is always valid to call.</p>
+</blockquote>
+<p>Explaining where the rule comes from is a non-trivial task, so for now, let's put this concern aside.
+This formulation is definitely vague, so let's see how it interacts with above definitions.</p>
+<p>For example, early-bound parameters work just fine:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo&lt;T: Clone&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>(T)&gt;);</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;T: Clone&gt; FnOnce&lt;(T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo&lt;T&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>We can create instance of type <code>foo&lt;u32&gt;</code> and then call it.
+We cannot call <code>foo&lt;&amp;mut u32&gt;</code>, but that isn't a problem: <code>foo&lt;&amp;mut u32&gt;</code> is not a valid type,
+values of one cannot be constructed, so no conflict with our rule.</p>
+<p>Conversely, not every late-bound parameter obeys it:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;T: Clone&gt; FnOnce&lt;(T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Even though <code>foo</code> is a proper value,
+if you attempt to call it with <code>!Clone</code> type it will result in compilation failure,
+i.e. we cannot call function with such parameter!</p>
+<p>With this experiment, we can phrase our expectations about late-bound parameters:</p>
+<blockquote>
+<p>Every value of late-bound parameter when substituted must result in a &quot;well-formed&quot; function.</p>
+</blockquote>
+<p>It can be tempting to reformulate it in terms of <code>where</code> blocks, such as:</p>
+<blockquote>
+<p>Late-bound parameters cannot participate in <code>where</code> clauses.</p>
+</blockquote>
+<p>However, this formulation is too strict.
+We can produce however many meaningless bounds, for example,
+<code>'static: 'a</code> is a valid bound which accepts every possible lifetime <code>'a</code>.</p>
+<p>Interestingly, the last formulation was used historically (possibly with implied exclusion of meaningless bounds).
+I managed to track Niko Matsakis' <a href="http://smallcultfollowing.com/babysteps/blog/2013/11/04/intermingled-parameter-lists/">blog post</a>
+which likely served as a foundation for existing design.
+The problem it addresses is so old that proposed changes exist only on mailing list with no RFC in sight.</p>
+<h1 id="implications">Implications</h1>
+<p>That was a lengthy setup.
+Let's toy with those definitions a bit, shall we?</p>
+<h2 id="type">Type</h2>
+<p>Can we have late-bound type parameters within the structure?
+Actually, we can:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;T&gt; FnOnce&lt;(T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>We can substitute any type <code>T</code> in here, and it will work.
+However, using reference to <code>T</code> is trickier:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a</span><span> T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: ?Sized</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (&amp;&#39;</span><span style="color:#bf616a;">a T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Rust automatically adds <code>Sized</code> bound to generic parameters, so we need to relax it.
+It is not possible (at least right now) to pass unsized types by value,
+so we didn't have to worry about it in the previous case.</p>
+<p>Looking at the result, it is hardly exciting.
+There isn't much you can do with &quot;bare&quot; type besides moving and dropping.
+Giving functionality to a type means applying a trait bound to it,
+which sounds impossibly in conflict with the no-errors-please policy.
+But we can get sneaky, for example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;T&gt; FnOnce&lt;(T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: From&lt;T&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p><code>From&lt;T&gt;</code> has a <a href="https://doc.rust-lang.org/std/convert/trait.From.html#impl-From%3CT%3E-12">blanket <code>impl</code></a> for all <code>T</code>,
+so technically this cannot produce an error (hush, negative trait bound worshippers!).</p>
+<p>Still, there isn't any actually <em>useful</em> functions we can abstract over in such way.</p>
+<h2 id="lifetime">Lifetime</h2>
+<p>This is where things get complicated.
+It is easier to enumerate cases when lifetimes are forced to be early-bound.</p>
+<p>Most frequent case is lifetime binding a type, <code>T: 'a</code>.
+This is commonly required when creating a reference to <code>T</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>(PhantomData&lt;&amp;</span><span style="color:#b48ead;">&#39;a </span><span>()&gt;, T)&gt;)</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: </span><span style="color:#b48ead;">&#39;a</span><span>;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; FnOnce&lt;(PhantomData&lt;&amp;</span><span style="color:#b48ead;">&#39;a </span><span>()&gt;, T)&gt; </span><span style="color:#b48ead;">for </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: </span><span style="color:#b48ead;">&#39;a</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = &amp;</span><span style="color:#b48ead;">&#39;a</span><span> T;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">PhantomData</span><span>&lt;&amp;&#39;</span><span style="color:#bf616a;">a</span><span> ()&gt;, T)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>It seems as if such lifetime must always be early-bound, however this is not the case!
+To make it late-bound we need to make sure that <code>T</code> is valid for every possible lifetime,
+but this is the same as saying <code>T: 'static</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo&lt;T&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>(T)&gt;)</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: </span><span style="color:#b48ead;">&#39;static</span><span>;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; FnOnce&lt;(PhantomData&lt;&amp;</span><span style="color:#b48ead;">&#39;a </span><span>()&gt;, T)&gt; </span><span style="color:#b48ead;">for </span><span>foo&lt;T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: </span><span style="color:#b48ead;">&#39;static</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = &amp;</span><span style="color:#b48ead;">&#39;a</span><span> T;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (</span><span style="color:#bf616a;">PhantomData</span><span>&lt;&amp;&#39;</span><span style="color:#bf616a;">a</span><span> ()&gt;, T)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This holds true for concrete types as well, except there compiler doesn't need guidance.
+It can always infer if type is <code>'static</code> or not and render lifetime early- or late-bound as necessary.
+The whole process is invisible to user.
+In fact this situation covers most (if not all) practical uses for late-bound lifetimes.</p>
+<p>You may notice that the function from example is weirdly shaped and this is for a reason.
+Because from this point things become <em>appropriately</em> confusing.</p>
+<p>What happens if we try to pass <code>&amp;'a T</code> as an argument instead?
+If we imagine for a second that <code>T</code> is late-bound, then <code>'a</code> can be late-bound too!</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a</span><span> T,)&gt; </span><span style="color:#b48ead;">for </span><span>foo</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: </span><span style="color:#b48ead;">&#39;a</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (&amp;&#39;</span><span style="color:#bf616a;">a T</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This one took me some time to sift through.
+We know that constructing <code>&amp;'a T</code> requires <code>T: 'a</code> bound, so why?
+The answer is simple: the bound cannot be violated.
+If your hand is habitually reaching for <code>unsafe</code>, stop it, we are looking to produce compile-time error, not UB.
+And it turns out that Rust simply doesn't allow us to construct reference type where <code>'a</code> outlives <code>T</code>.</p>
+<p>This doesn't seem related to practice, after all in real Rust there are no late-bound types.
+But remember, we can always put a concrete type in place of a generic one.
+For example, if we take some non-<code>'static</code> type like <code>&amp;u32</code> then <code>&amp;T</code> becomes <code>&amp;'a &amp;'b u32</code>.
+To be valid it must satisfy bound <code>'b: 'a</code>, but we already deduced that it cannot be violated!
+We can claim that both <code>'a</code> and <code>'b</code> can be bound late.
+And the most crazy part: compiler <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=0149ebbcaae35bda4c5aabb4c2242c42">agrees</a> with us!</p>
+<p>This situation is result of how Rust treats references.
+Along with reference we receive <em>an implied bound</em> which always holds
+because language forbids construction of a type that could possibly violate it.
+I'm not aware of other unusual interactions which can affect lifetime &quot;boundness&quot;.</p>
+<p>The rest is a lot more boring compared to what we just got through.
+Second case is similar to the first one, except lifetime binds other lifetime <code>'a: 'b</code>.
+Unless bound is implied, neither <code>'a</code> nor <code>'b</code> can be late-bound for obvious reasons:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;b</span><span>&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>(&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>, &amp;</span><span style="color:#b48ead;">&#39;b mut </span><span>&amp;</span><span style="color:#b48ead;">&#39;b u32</span><span>)&gt;)</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    &#39;a: </span><span style="color:#b48ead;">&#39;b</span><span>;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;b</span><span>&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>, &amp;</span><span style="color:#b48ead;">&#39;b mut </span><span>&amp;</span><span style="color:#b48ead;">&#39;b u32</span><span>)&gt; </span><span style="color:#b48ead;">for </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, </span><span style="color:#b48ead;">&#39;b</span><span>&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    </span><span style="color:#b48ead;">&#39;a</span><span>: </span><span style="color:#b48ead;">&#39;b</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: (&amp;&#39;</span><span style="color:#bf616a;">a u32</span><span>, &amp;&#39;</span><span style="color:#bf616a;">b mut</span><span> &amp;&#39;</span><span style="color:#bf616a;">b u32</span><span>)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        *args.</span><span style="color:#d08770;">1 </span><span>= args.</span><span style="color:#d08770;">0</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>There is one more situation where lifetime is forced to be early-bound.
+This is when it appears only in return type:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt;(PhantomData&lt;</span><span style="color:#b48ead;">fn</span><span>() -&gt; &amp;</span><span style="color:#b48ead;">&#39;a </span><span>()&gt;);</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; FnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>foo&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = &amp;</span><span style="color:#b48ead;">&#39;a </span><span>();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: ()) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>For soundness reasons compiler requires every generic to appear as part of trait, <code>where</code> clause or <code>Self</code> type.
+But we cannot oblige to either of the first two:
+being part of trait means lifetime appears in arguments (which we claimed it doesn't) and
+being meaningful part of <code>where</code> clause means we break our no-errors rule
+(and no, clever tricks like <code>'static: 'a</code> don't work).
+The only solution is to put lifetime into function type, making it early-bound.</p>
+<p>Another piece of trivia:
+lifetimes in return type used to be late-bound until <a href="https://github.com/rust-lang/rust/issues/32330">soundness issues</a> were discovered.</p>
+<p>Every other use is safe to be late-bound.</p>
+<h2 id="higher-rank-trait-bounds">Higher-rank trait bounds</h2>
+<p>HRTBs is one of those language features which is <em>hard</em> to wrap your hand around.
+I imagine there are many who tried to use it and got hammered by compiler errors (including myself).
+With a single <a href="https://doc.rust-lang.org/nomicon/hrtb.html">nomicon</a> page to guide you, no wonder it's difficult to take it past basic examples.</p>
+<p>However, the reality cannot be more prosaic.
+HRTB is simply a counterpart feature to late-bound parameters.</p>
+<p>To illustrate, imagine type <code>foo</code> is a function:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>,)&gt; </span><span style="color:#b48ead;">for </span><span>foo {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">extern </span><span>&quot;</span><span style="color:#a3be8c;">rust-call</span><span>&quot; </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">_args</span><span>: (&amp;&#39;</span><span style="color:#bf616a;">a u32</span><span>,)) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        todo!()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>and we try to return it from other function as an <code>impl Trait</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar</span><span>() -&gt; impl FnOnce&lt;(&amp;&#39;??? </span><span style="color:#b48ead;">u32</span><span>,), Output=()&gt; {</span><span>
+</span><span>    foo</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Rust requires us to introduce a lifetime for the reference, but where that lifetime comes from?
+Compiler helpfully indicates that we can put it on <code>bar</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt;() -&gt; impl FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>,), Output=()&gt; {</span><span>
+</span><span>    foo</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">let</span><span> also_foo = </span><span style="color:#96b5b4;">bar</span><span>();</span><span>
+</span></code></pre>
+<p>Except... <code>also_foo</code> has semantics different from original <code>foo</code>!
+<code>FnOnce</code> trait is only implemented for one specific lifetime <code>'a</code> with which <code>bar</code> was called.
+Trying to call <code>also_foo</code> with any other disjoint lifetime is doomed to <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=24bcbf21fa73b891593acdebfcfc6868">fail</a>.
+It is as if we fix <code>'a</code> at the point where <code>bar</code> is called, far away from the point where resulting function is used.</p>
+<p>This sounds eerily similar to early-bound lifetimes, and indeed it is the case!
+Another important observation, there is nothing you can do to make it late-bound.
+As soon as lifetime appears as part of <code>bar</code>'s generics (or anything else be it <code>struct</code> or even <code>impl</code> block)
+it becomes early-bound with respect to <code>foo</code>.
+Such lifetime can never be &quot;free&quot; because it's chosen by someone else prior to <code>foo</code> entering the scope.</p>
+<p>HRTB allows us to bypass such restriction and decouple the lifetime from <code>bar</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar2</span><span>() -&gt; impl for&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; FnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>,), Output = ()&gt; {</span><span>
+</span><span>    foo</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">let</span><span> also_foo2 = </span><span style="color:#96b5b4;">bar2</span><span>();</span><span>
+</span></code></pre>
+<p>In this implementation the choice of lifetime <code>'a</code> is delayed to the point where function is called,
+which turns <code>'a</code> into late-bound parameter.
+HRTB helped us to smuggle it past type erasure.</p>
+<p>And, this is it, really.
+All HRTB does is introduce a late-bound lifetime to allow you to construct correct trait object.</p>
+<p>Somewhat tangentially, HRTB also uncovers a relation between differently bound generics.
+You can always convert a late-bound one into early-bound one like in the &quot;faulty&quot; <code>also_foo</code> example;
+obviously, if it is implemented for every lifetime <code>'a</code>, then we can choose singular <code>'specific</code> lifetime out of those.
+But the reverse transformation is impossible.
+Unfortunately, in this case compiler cannot say &quot;I expect an early-bound lifetime instead of late-bound one here&quot;
+because this is a hidden mechanic, it is never explained anywhere, and compiler doesn't expect you to know.
+Instead, it has to resort to a more generic &quot;Implementation is not general enough&quot; statement,
+which leaves anyone seeing it for the first time scratching their head and asking in confusion
+&quot;What the hell is <em>this</em> supposed to mean?!&quot;.</p>
+<h2 id="why-late-bound-parameters-matter">Why late-bound parameters matter</h2>
+<p>This is the point where you should ask yourself: why do we need late-bound parameters at all?
+What is so important about them to not only to put up with complexity of separating them out,
+but also to create a brand new confusing language feature?
+Isn't it easier to make everything early-bound?</p>
+<p>I sort of spoiled the answer in the previous section.
+The primary distinction between early- and late-bound parameters in that
+they interact with type erasure in fundamentally different ways:</p>
+<ul>
+<li>
+<p>Early-bound parameter is part of the type, so it must be known <em>before</em> type erasure happens.
+This means such parameter is effectively immutable and often unknowable to the user.</p>
+</li>
+<li>
+<p>Late-bound parameter can be decided <em>after</em> type erasure happens.
+Choice of such parameter is deferred to type user instead of type creator.</p>
+</li>
+</ul>
+<p>It cannot be understated how important this distinction is.</p>
+<p>The simplest case of type erasure is a well-known and cherished... generic parameter!</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">foo</span><span>&lt;T&gt;() {}</span><span>
+</span></code></pre>
+<p>This is a case of <em>static</em> type erasure, but type erasure nonetheless.
+Original type behind <code>T</code> is hidden, so <code>foo</code> doesn't know on which exact type it operates on.
+You can tell how <code>T</code> can behave through trait bounds,
+but the real type can never leak into <code>foo</code>'s implementation.</p>
+<p>Technically, in such cases we can bypass the restriction by introducing more bounds on <code>T</code>
+(which often happens to be the right choice anyways),
+however <em>runtime</em> type erasure has no such luxury.
+Late-bound parameters is a necessary ingredient allowing us to pass lifetimes through trait objects:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> f: dyn </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; Fn&lt;(&amp;</span><span style="color:#b48ead;">u32</span><span>, &amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>), Output=&amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>&gt;;</span><span>
+</span></code></pre>
+<p>On related note, remember that functions are zero-sized <em>types</em>.
+So converting one to function pointer is also a form of type erasure!
+Which explains why <code>fn</code> pointers can make use of HRTBs too:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> f: </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; </span><span style="color:#b48ead;">fn</span><span>(&amp;</span><span style="color:#b48ead;">u32</span><span>, &amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">&#39;a u32</span><span>;</span><span>
+</span></code></pre>
+<p>Observing this brings chilling thoughts.
+Without late-bound generics simply abstracting over references in functions become impractical.</p>
+<h2 id="why-early-bound-parameters-matter">Why early-bound parameters matter</h2>
+<p>Still there is one last question left without satisfying answer.
+Where the rule about callability comes from?
+We saw a lot of existing language structure appear from it, but why does that rule exists in the first place?</p>
+<p>Well, something I didn't spell out loud is the fact that function monomorphization happens in <em>two steps</em>:
+first, on function type, then - on <code>impl</code> block.
+So, the only way to break original rule - while writing functioning code, of course - 
+is to fail second monomorphization step.
+Which can be reformulated as</p>
+<blockquote>
+<p><code>Fn*</code> trait impl block cannot produce monomorphization errors.</p>
+</blockquote>
+<p>Which... sounds even more arbitrary than the first one!</p>
+<p>Everything past this point is my best guess.</p>
+<p>The real reason behind the phenomenon is that compiler's understanding of a function is different from ours.
+Compiler's job is to lower Rust into assembly,
+but for assembly function is a single set of machine instructions with an associated label.
+It doesn't know anything about generics and this is where the need for monomorphization arises.</p>
+<p>But this is also where other problems begin.
+In the function model we use monomorphization happens in <em>two</em> places.
+Which one is real?
+Rust's decision was to associate function's monomorphized type with resulting assembly function.
+However, this ruling has side effects.</p>
+<p>Now, every <code>Fn*</code> <code>impl</code> block must result in exactly one set of assembly instructions - 
+regardless of how monomorphization on it goes!
+This leaves <code>impl</code> block in an awkward position:
+on the one hand it can (and wants to!) introduce new generics, but it must be extremely careful.
+Monomorphization at this step can no longer fail (sounds familiar?) or
+result in multiple paths invocation could take. 
+Latter, by the way, is the real reason why there are no late-bound types.
+(And if you wonder why this logic doesn't apply to lifetimes,
+lifetimes are just compiler annotations used to prove certain properties of the code,
+they don't directly participate in code generation and are entirely harmless when late-bound.)</p>
+<h1 id="conclusions">Conclusions</h1>
+<p>There you have it.
+You can probably imagine that those decisions happened in a lot more haphazard way in the early days of Rust,
+and it left us with some interesting consequences.</p>
+<p>First, <code>Fn*</code> trait implementors must satisfy an extra condition of 
+being compiled down to a singular set of machine instructions, so they are... <em>function-like</em>?
+At this point, any applicable terminology is slipping away from me.</p>
+<p>Second, since current HRTB rules are based off <code>Fn*</code> trait logic,
+only <em>function-like</em> trait objects can be properly expressed.
+This potentially hurts us in terms of language richness:
+for other traits the rule is entirely artificial and doesn't necessarily make sense.</p>
+<p>Another pain point is <code>unboxed_closures</code> feature.
+If it is stabilised as-is anyone will be able to write &quot;wrong&quot; functions in stable Rust.
+What are we going to do about that?</p>
+<p>And, just maybe, this is a glimpse of a clash between abstractions.
+We tried to glue Rust's function types directly to assembly, but could it be that we are wrong?
+Could there be some room for improvements here?</p>
+<p>I hope you found this journey both interesting and educational.
+See you next time!</p>
+
+    </div>
+
+    
+    
+
+    <div class="post-footer">
+        
+            
+                <div class="post-tags">
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/rust/">#rust</a>
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/function/">#function</a>
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/generics/">#generics</a>
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/lifetime/">#lifetime</a>
+                    
+                </div>
+            
+            
+                <div class="post-nav">
+                    
+                        <a class="previous" href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-contexts&#x2F;">‹ Futuristic Rust: context emulation</a>
+                    
+                    
+                        <a class="next" href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-reborrowing&#x2F;">Obscure Rust: reborrowing is a half-baked feature ›</a>
+                    
+                    
+                    
+                </div>
+            
+
+        
+
+    </div>
+
+    
+    
+</article>
+
+
+                </div>
+            </main>
+
+            
+            
+        </div>
+
+      
+          <script type="text/javascript" src="https://haibane-tenshi.github.io/even.js" ></script>
+      
+    </body>
+
+</html>

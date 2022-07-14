@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title>haibane_tenshi&#x27;s blog - Futuristic Rust: context emulation, part 2</title>
+
+      
+
+      
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+          
+      
+
+      
+          <link rel="stylesheet" href="https://haibane-tenshi.github.io/site.css">
+          
+      
+
+      
+      
+    </head>
+
+    <body>
+        <div class="container">
+
+            <div id="mobile-navbar" class="mobile-navbar">
+              <div class="mobile-header-logo">
+                <a href="/" class="logo">Thoughts with wings</a>
+              </div>
+              <div class="mobile-navbar-icon icon-out">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <nav id="mobile-menu" class="mobile-menu slideout-menu slideout-menu-left">
+              <ul class="mobile-menu-list">
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                            Home
+                        </a>
+                    </li>
+                
+                    <li class="mobile-menu-item">
+                        <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                            Tags
+                        </a>
+                    </li>
+                
+              </ul>
+            </nav>
+
+            <header id="header">
+                <div class="logo"><a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">Thoughts with wings</a></div>
+                <nav class="menu">
+                    <ul>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;">
+                                    Home
+                                </a>
+                            </li>
+                        
+                            <li>
+                                <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;&#x2F;tags">
+                                    Tags
+                                </a>
+                            </li>
+                        
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <div class="content" id="mobile-panel">
+                    
+
+
+<div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">Contents</h2>
+    <div class="post-toc-content always-active">
+        <nav id="TableOfContents">
+            <ul>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#goals" class="toc-link">Goals</a>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#representation" class="toc-link">Representation</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#improving-on-context-design" class="toc-link">Improving on context design</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#traits-basic-tuple-ops" class="toc-link">Traits: basic tuple ops</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#handles" class="toc-link">Handles</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#capabilities" class="toc-link">Capabilities</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#cxfn-family-core" class="toc-link">CxFn* family core</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#finishing-store" class="toc-link">Finishing Store</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#advanced-capabilities" class="toc-link">Advanced capabilities</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-gats" class="toc-link">Desugaring into GATs</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#cxfn-traits" class="toc-link">CxFn* traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#lifetimes" class="toc-link">Lifetimes</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#fn-capability" class="toc-link">fn: &amp;capability</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#fn-mut-capability" class="toc-link">fn: &amp;mut capability</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#traits" class="toc-link">Traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#object-safety" class="toc-link">Object safety</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#design-issues" class="toc-link">Design issues</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-input-lifetimes" class="toc-link">Desugaring into input lifetimes</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#cxfn-traits-1" class="toc-link">CxFn* traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#comparison-with-gat-based-approach" class="toc-link">Comparison with GAT-based approach</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#flavors-of-early-bound-lifetimes" class="toc-link">Flavors of early-bound lifetimes</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-hybrid" class="toc-link">Desugaring into hybrid</a>
+                    
+                    <ul>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#reborrow2-trait" class="toc-link">Reborrow2 trait</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#cxfn-traits-2" class="toc-link">CxFn* traits</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#usage-in-wildcard-contexts" class="toc-link">Usage in wildcard contexts</a>
+                        </li>
+                        
+                        <li>
+                            <a href="https://haibane-tenshi.github.io/rust-contexts2/#more-problems" class="toc-link">More problems</a>
+                        </li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#interaction-with-language" class="toc-link">Interaction with language</a>
+                    
+                </li>
+                
+                <li>
+                    <a href="https://haibane-tenshi.github.io/rust-contexts2/#conclusions" class="toc-link">Conclusions</a>
+                    
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<article class="post">
+    
+    <header class="post__header">
+        <h1 class="post__title">
+            <a href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-contexts2&#x2F;">Futuristic Rust: context emulation, part 2</a>
+        </h1>
+        <div class="post__meta">
+            <span class="post__time">2022-07-14</span>
+            
+        </div>
+    </header>
+
+    <div class="post-content">
+      <p>In <a href="https://haibane-tenshi.github.io/rust-contexts/">previous article</a> we devised a context emulation method which supports access
+to capabilities through shared references.
+It's time to significantly improve the approach.</p>
+<span id="continue-reading"></span>
+<p>At some point while writing this post even I - with my unyielding love for extremely long longposts -
+had to admit that it got out of hand.
+There are too many details to fit on a page.
+So instead you can find all of that in <a href="https://github.com/haibane-tenshi/rust_context_emulation">the github repo</a>.
+This article is intended as high level overview of the approach.
+Documentation is minimalistic, so I recommend you to look into examples first.
+Those illustrate important use cases and serve as a test ground.
+Feel free to clone and play with it.</p>
+<p>Also, you can skip right to <a href="https://haibane-tenshi.github.io/rust-contexts2/#conclusions">conclusions</a> if you are only interested in TL;DR.</p>
+<h1 id="goals">Goals</h1>
+<p>So, before we start let's talk a little about what we want to achieve.</p>
+<ol>
+<li>
+<p>One of the biggest issues with previous attempt is
+contextual functions being out of touch with existing <code>Fn*</code> traits design.
+In particular, it requires late-bound types, which is more of speculative feature right now,
+also it breaks implicit assumptions around <code>Fn*</code> trait implementations.</p>
+<p>This has long-reaching unfortunate implications when interacting with other language parts.
+Poor interaction with traits especially stands out. </p>
+</li>
+<li>
+<p>Another exploration vector is better integration with Rust ownership semantics.
+It would be nice to move past shared references to mutable references or even taking capabilities by value.</p>
+</li>
+<li>
+<p>There is desire to expand on definition of capabilities.
+So far we assumed that capability values have a single concrete type.
+Relaxing this requirement might be interesting, for ex. allowing generic capabilities.</p>
+</li>
+</ol>
+<h1 id="representation">Representation</h1>
+<h2 id="improving-on-context-design">Improving on context design</h2>
+<p>To avoid confusion, I expanded on terminology a bit.</p>
+<ul>
+<li>
+<p><em>Context</em> is a general name for a collection of capabilities a given function receives.</p>
+</li>
+<li>
+<p><code>Store</code> is an actual type(s) which used to this purpose.</p>
+</li>
+</ul>
+<h3 id="true-nature-of-stores">True nature of stores</h3>
+<p><code>Store</code> is a container with the following properties:</p>
+<ul>
+<li>It can hold values of different types (capability wrappers in our case), i.e. is heterogeneous.</li>
+<li>At most one value of each type is allowed (due to shadowing/replacement).</li>
+<li>Presence of individual values can be detected via traits at compile time.</li>
+</ul>
+<p>It doesn't take much difficulty to put it all together: context is just <em>a statically-typed <code>anymap</code></em>.</p>
+<p><code>anymap</code> container maps <em>type</em> <code>T</code> to a single <em>value</em> of <code>T</code>.
+It is a relatively niche container type.
+There are <a href="https://www.jakobmeier.ch/blogging/Untapped-Rust.html#section-1-a-heterogenous-collection-of-singletons">articles</a> theorizing its existence
+as well as already working and widely used <a href="https://docs.rs/anymap/latest/anymap/">implementations</a>.
+Still, considering the state of type manipulation in Rust,
+building a <em>statically-typed</em> version sounds insane.
+A perfect job for us.</p>
+<h3 id="building-blocks">Building blocks</h3>
+<p>To start we need to understand how &quot;normal&quot;, dynamic anymap works.
+The core idea is simple: if we can assign a unique hash to every type (<a href="https://doc.rust-lang.org/std/any/struct.TypeId.html"><code>TypeId</code></a> could work),
+we can use that hash to map onto a type-erased value of that type,
+for example with the help of <code>HashMap&lt;TypeId, Box&lt;dyn Any&gt;&gt;</code>.
+Because types serve as &quot;keys&quot;, recovering actual value is a straightforward <a href="https://doc.rust-lang.org/std/any/trait.Any.html#method.downcast_ref"><code>Any::downcast_ref</code></a>.
+The problem for us is how to lift it to compile-time.</p>
+<p>Let's impose a constraint: <strong>every capability must be declared in code before being used</strong>.
+It doesn't really introduce a limitation, as this is an implicit assumption behind most contexts visions anyways.
+However, it allows us to know all capabilities that can ever appear in the program.
+This also means we already know all acceptable keys for the map, 
+so it is possible to build a <a href="https://en.wikipedia.org/wiki/Perfect_hash_function">perfect hash map</a>!
+It is easy to put the rest together:</p>
+<ul>
+<li>Context itself can be just a tuple.</li>
+<li>Every capability is assigned a (unique) index within that tuple.</li>
+<li>We can lift getters/setters/whatever into traits and
+implement them based on exact type residing in every position.</li>
+</ul>
+<p>Let's do it!</p>
+<h2 id="traits-basic-tuple-ops">Traits: basic tuple ops</h2>
+<p>For starters, we need to abstract over tuple operations.
+The following two traits summarize it:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>Get&lt;N: Indexed&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">mut Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>Put&lt;T, N: Indexed&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">put</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">t</span><span>: T) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>They <em>do</em> have to be traits: <code>get</code>'s output type depends on index and <code>put</code> changes type of container altogether. </p>
+<p>The tuple itself looks like this:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>Tuple&lt;T0, T1, T2, T3&gt;(T0, T1, T2, T3);</span><span>
+</span></code></pre>
+<p>We will have only 4 slots, because why not.
+You can choose any number you want, it only limits how many capabilities you can put in.
+Ideally, we would like it to be variadic, but the feature is far away, so a big enough number will do.</p>
+<p>Implementation of <code>Get</code> and <code>Put</code> is straightforward.
+The only mystery is <code>Indexed</code> trait:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>Index&lt;</span><span style="color:#b48ead;">const</span><span> N: </span><span style="color:#b48ead;">usize</span><span>&gt;;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">mod </span><span>private {</span><span>
+</span><span>    </span><span style="color:#b48ead;">pub trait </span><span>Sealed {}</span><span>
+</span><span>    </span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">const</span><span> N: </span><span style="color:#b48ead;">usize</span><span>&gt; Sealed </span><span style="color:#b48ead;">for </span><span>super::Index&lt;N&gt; {}</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">trait </span><span>Indexed: private::Sealed {}</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">const</span><span> N: </span><span style="color:#b48ead;">usize</span><span>&gt; Indexed </span><span style="color:#b48ead;">for </span><span>Index&lt;N&gt; {}</span><span>
+</span></code></pre>
+<p><code>Index</code> is just wrapper for usize value, and <code>Indexed</code> is a marker trait with standard seal -
+to ensure we don't accidentally pass something wrong instead.</p>
+<p>Normally, we should be able to use indices directly, but it is difficult at the moment.
+Passing associated <code>const</code> items as const generic parameters is not stable and requires <code>generic_const_exprs</code> feature.
+Currently, the feature is incomplete, and I ran into a number of bugs.
+The numbers are not used in any way, so we replace them with marker types instead.</p>
+<p>Summing it up, <code>Get</code> and <code>Put</code> traits transform tuple into... umm, heterogeneous array?
+The resulting container is generic: it can hold anything and doesn't have any context-specific behaviour yet.
+But before we continue we need to take a look at handles.</p>
+<h2 id="handles">Handles</h2>
+<p>A secondary goal of this exploration is providing support for mutable references.
+Unfortunately this is not nearly as simple as it seems and takes us to a dark corner of the language.</p>
+<p>The biggest challenge mutable references face is that they are move-only.
+This property when taken for face value is very restrictive, for example the following snippet...</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">foo</span><span>(_: &amp;</span><span style="color:#b48ead;">mut u32</span><span>) {}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">bar</span><span>(</span><span style="color:#bf616a;">i</span><span>: &amp;</span><span style="color:#b48ead;">mut u32</span><span>) {</span><span>
+</span><span>    </span><span style="color:#96b5b4;">foo</span><span>(i);</span><span>
+</span><span>    </span><span style="color:#96b5b4;">foo</span><span>(i);</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>...should not compile, contrary to <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=ac5aca26a4d39439c07a299b92048f2b">expectations</a>.
+Rust has a special mechanism for resolving this: reborrowing.
+And we will need to tap into it to allow similar use cases for capabilities.
+Unfortunately, we cannot express real reborrowing in the type system, so we will have to settle for an emulation.</p>
+<p>This brings us to <code>HandleRef</code> and <code>HandleMut</code> which is just a wrapper around shared/mutable reference:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub struct </span><span>Handle&lt;T&gt;(T);</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub type </span><span>HandleRef&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; = Handle&lt;&amp;</span><span style="color:#b48ead;">&#39;a</span><span> T&gt;;</span><span>
+</span><span style="color:#b48ead;">pub type </span><span>HandleMut&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; = Handle&lt;&amp;</span><span style="color:#b48ead;">&#39;a mut</span><span> T&gt;;</span><span>
+</span></code></pre>
+<h2 id="capabilities">Capabilities</h2>
+<p>How do we assign indices to capabilities?
+With traits again:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>Capability {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Index: Indexed;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Inner: ?Sized;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">as_ref</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">Self::</span><span>Inner;</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">as_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">mut Self::</span><span>Inner;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>The interesting bit is <code>Index</code> type, the rest is just implementation helpers.
+Setting indices is our responsibility since there is no way to automatically generate them.</p>
+<p>The core idea of capability representation remains the same.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span>capability interner: Interner;</span><span>
+</span></code></pre>
+<p>...expands into...</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__interner(Interner);</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>Capability </span><span style="color:#b48ead;">for </span><span>__interner {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Index = Index&lt;1&gt;; </span><span style="color:#65737e;">// Index is picked manually.</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Inner = Interner;</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<h2 id="cxfn-family-core"><code>CxFn*</code> family core</h2>
+<p>Shape of <code>CxFn*</code> trait is key to this approach.</p>
+<p>Observations:</p>
+<ul>
+<li>Every contextual function can always define a minimal set of capabilities required to execute it.
+There is never a reason to pass in anything beyond that.</li>
+<li>Because all possible contexts are represented by one generic container, 
+every set of capabilities (along with their access mode) can be associated with single unique <code>Store</code> type.</li>
+</ul>
+<p>In other words, contextual functions don't need to be generic over contexts,
+they only need to be executable with single specific context type!</p>
+<p>This is the payoff for going through the trouble of working out representation of <code>Store</code>:
+we can now define function context as an associated type on <code>CxFn*</code> traits:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>CxFnOnce&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFnMut&lt;Args&gt;: CxFnOnce&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFn&lt;Args&gt;: CxFnMut&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>These traits are already functional, although incomplete.
+Context may contain &quot;free&quot; lifetimes that are not attached to anything within the trait,
+which causes compiler to rightfully complain.
+There are other design concerns too, so we will come back to resolve this issue in a moment.</p>
+<h2 id="finishing-store">Finishing <code>Store</code></h2>
+<p>Time to finish store construction.</p>
+<p>I should mention, we don't store <code>Handle</code>'s directly.
+Instead, we wrap them in special <code>Some</code> type:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub struct </span><span>Some&lt;T&gt;(pub T);</span><span>
+</span><span style="color:#b48ead;">pub struct </span><span>None;</span><span>
+</span></code></pre>
+<p>Yes, this is just a type-level option.
+<code>None</code> represents an absent capability.
+After writing so much Rust it is almost unexpected
+how easily things become messy when you don't have familiar vocabulary types to reach for.
+I had to rewrite internals two times before realizing that simple <code>Option</code> is what I truly needed.</p>
+<p>I won't mention them much past this point: ops implementations for them are about what you expect. </p>
+<h3 id="store-ops">Store ops</h3>
+<p>Finally, the fun part.</p>
+<p><code>Push</code> trait allows us to manipulate the shape of context:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>Push&lt;CRef&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">push</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">t</span><span>: CRef) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p><code>Store</code> implements <code>Push&lt;&amp;'a C&gt;</code> and <code>Push&lt;&amp;'a mut C&gt;</code> where <code>C: Capability</code>.</p>
+<p><code>ExtractRef</code> and <code>ExtractMut</code> traits to acquire references from context:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>ExtractRef&lt;&#39;a, T&gt;</span><span>
+</span><span>where</span><span>
+</span><span>    T: ?Sized + &#39;a,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">extract_ref</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">&#39;a</span><span> T;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>ExtractMut&lt;&#39;a, T&gt;</span><span>
+</span><span>where</span><span>
+</span><span>    T: ?Sized + &#39;a,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">extract_mut</span><span>&lt;</span><span style="color:#b48ead;">&#39;s</span><span>&gt;(&amp;</span><span style="color:#b48ead;">&#39;s mut </span><span style="color:#bf616a;">self</span><span>) -&gt; &amp;</span><span style="color:#b48ead;">&#39;s mut</span><span> T</span><span>
+</span><span>    </span><span style="color:#b48ead;">where</span><span>
+</span><span>        </span><span style="color:#b48ead;">&#39;a</span><span>: </span><span style="color:#b48ead;">&#39;s</span><span>;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Note the distinction between those two.
+<code>ExtractRef</code> is able to perfectly replicate original lifetime of capability, but this is not possible with <code>ExtractMut</code>.
+Instead, it has to rebind resulting reference to lifetime of <code>self</code>.</p>
+<p>This is actually a serious problem.
+After you extracted a mutable reference, store becomes untouchable as long as that reference exists.
+Which means we cannot call other functions nor extract more references from it!</p>
+<p>This is not the first time such problem manifests.
+For example, you cannot get mutable references to two different elements of <code>Vec</code>, at least using naive methods.
+There do exist ways to work around, for example <code>Vec</code> can use <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#method.split_at_mut"><code>[T]::split_at_mut</code></a> and friends.
+However, even though I feel it should be possible, I struggled to make similar API work in our case.
+There are certainly GAT and HRTB limitations that make it difficult.
+Let me know if you have better luck.</p>
+<h3 id="general-purpose-ops">General purpose ops</h3>
+<p>The rest of operations on <code>Store</code> are implemented by delegating them to <code>Handle</code>'s</p>
+<h4 id="reborrowing">Reborrowing</h4>
+<p><code>HandleMut</code>s cannot be cloned, so reborrowing provides a replacement.
+True reborrowing is out of our reach, but we can emulate it:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>Reborrow {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;local</span><span>&gt;</span><span>
+</span><span>    </span><span style="color:#b48ead;">where</span><span>
+</span><span>        </span><span style="color:#b48ead;">Self</span><span>: </span><span style="color:#b48ead;">&#39;local</span><span>;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">reborrow</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;&#39;_&gt;;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>I have to concede a point here: this emulation actually replicates the behavior of true reborrowing in the current
+Rust.
+However, be careful to not repeat my <a href="https://haibane-tenshi.github.io/rust-reborrowing/#emulating-reborrow">embarrassing mistakes</a>.
+Take a look at implementation on <code>HandleMut</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; Reborrow </span><span style="color:#b48ead;">for </span><span>HandleMut&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: ?Sized + </span><span style="color:#b48ead;">&#39;a</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;s</span><span>&gt; = HandleMut&lt;</span><span style="color:#b48ead;">&#39;s</span><span>, T&gt; </span><span style="color:#b48ead;">where Self</span><span>: </span><span style="color:#b48ead;">&#39;s</span><span>;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">reborrow</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;&#39;_&gt; {</span><span>
+</span><span>        Handle(&amp;</span><span style="color:#b48ead;">mut </span><span>*</span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#d08770;">0</span><span>)</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Resulting reference is scoped to lifetime of <code>&amp;mut self</code>.
+Compiler is very insistent about this point.
+However, since we pass stores by value, this reference is certain to be <em>local</em>,
+which means we can never return reborrowed mutable references from functions!</p>
+<p>This sounds like a difficult situation, but in fact it isn't.
+Returning reference from a function requires that reference to be scoped to whole function,
+which in turn implies this is the last use of such reference.
+In other words, there is no need to reborrow in first place.
+At least, this is how it works with <em>current</em> borrow checker.</p>
+<p>Importantly, the above logic works <em>only</em> for mutable references.
+So, in fact, we have to implement reborrowing differently for shared references:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt; Reborrow </span><span style="color:#b48ead;">for </span><span>HandleRef&lt;</span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    T: ?Sized + </span><span style="color:#b48ead;">&#39;a</span><span>,</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;s</span><span>&gt; = </span><span style="color:#b48ead;">Self where Self</span><span>: </span><span style="color:#b48ead;">&#39;s</span><span>;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">reborrow</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;&#39;_&gt; {</span><span>
+</span><span>        Handle(</span><span style="color:#bf616a;">self</span><span>.</span><span style="color:#d08770;">0</span><span>)</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>For them, reborrow is a simple <code>Copy</code>.</p>
+<h4 id="unification">Unification</h4>
+<p>The next trouble to take care of is context unification.
+Purpose of unification is to take two different contexts and produce a combination.
+This is commonly required when a function calls multiple other functions or accesses any capabilities alongside that.</p>
+<p>The trait itself is not descriptive:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>UnifyOp&lt;T&gt;: Sized {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>The magic happens in implementations.</p>
+<p>Situation with <code>Store</code> is simple: types are unified slot-by-slot by delegating to <code>Handle</code>s.
+And in case of multiple <code>Store</code>s participating it is done sequentially one-by-one.</p>
+<p>Unifying two handles is much more interesting.
+Every handle has three disjoint parts: lifetime, reference kind (shared/mutable) and type.
+Under the assumption that both handles refer to the same data, we can do it piecewise:</p>
+<ul>
+<li>Lifetimes can only be unified when they are identical, i.e. <code>'a = 'b</code>.</li>
+<li>Reference kind is either <code>Shared</code> or <code>Mutable</code>.
+Unifying any kind with mutable gives us mutable, and otherwise it is shared.</li>
+<li><code>T</code> and <code>U</code> can only be unified when <code>T = U</code>.</li>
+</ul>
+<p>If handles refer to different data, then unification should fail.
+We cannot guarantee that, but it isn't a problem.
+This can only occur if you mistakenly assign the same index/context slot to two different capabilities.</p>
+<p>I should also mention that rule about <code>T = U</code> can be relaxed, we will talk about it in section about 
+<a href="https://haibane-tenshi.github.io/rust-contexts2/#generic">generic capabilities</a>.</p>
+<h4 id="coercion">Coercion</h4>
+<p>Purpose of coercion is to undo unification.
+It is very important piece of puzzle since context must be shaped individually for every function.</p>
+<p>For now let's limit ourselves to transformations reversing proposed unification:</p>
+<ul>
+<li><code>HandleMut -&gt; HandleMut</code></li>
+<li><code>HandleRef -&gt; HandleRef</code></li>
+<li><code>HandleMut -&gt; HandleRef</code></li>
+<li><code>Some&lt;T&gt; -&gt; None</code></li>
+</ul>
+<p>The first three correspond to transformations between different kinds of references,
+the last one removes capability from store. </p>
+<p>This is done through coercion trait:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>Coerce&lt;Other&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">coerce</span><span>(</span><span style="color:#bf616a;">self</span><span>) -&gt; Other;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<h2 id="advanced-capabilities">Advanced capabilities</h2>
+<h3 id="dynamically-sized">Dynamically sized</h3>
+<p>Something I didn't consider last time is wrapping a DST type.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span>capability alloc: dyn Allocator;</span><span>
+</span></code></pre>
+<p>This is possible and provides a decent way to define overridable functionality:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>__alloc_helper&lt;T: </span><span style="background-color:#bf616a;color:#2b303b;">?</span><span>Sized&gt;(T);</span><span>
+</span><span style="color:#b48ead;">type </span><span>__alloc = __alloc_helper&lt;dyn Allocator&gt;;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl </span><span>Capability </span><span style="color:#b48ead;">for </span><span>__alloc {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Index = Index&lt;0&gt;;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Inner = dyn Allocator;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>And it can be instantiated like following:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> alloc: &amp;__alloc = &amp;</span><span style="color:#96b5b4;">__alloc_helper</span><span>(std::alloc::Global);</span><span>
+</span></code></pre>
+<p>Helper type is required to provide unsizing coercion.
+See <a href="https://doc.rust-lang.org/nomicon/exotic-sizes.html#dynamically-sized-types-dsts">relevant Rustonomicon pages</a>.</p>
+<h3 id="generic">Generic</h3>
+<p>It isn't difficult to extend what we did with DST to full-blown generics.
+However, generic capabilities have a nasty problem: at first glance they completely ruin unification.
+Given two handles <code>HandleRef&lt;'_, T&gt;</code> and <code>HandleRef&lt;'_, V&gt;</code> how does one even produce type <code>U</code> to unify <code>T</code> and <code>V</code>
+when <code>T != V</code>?!</p>
+<h4 id="coercion-1">Coercion</h4>
+<p>It is actually easier to work the problem backwards.
+Instead, let's ask, which types <code>U</code> can be safely converted to a given type <code>T</code>?</p>
+<p>We can scramble a few examples.
+<code>[T; N]</code> and <code>Vec&lt;T&gt;</code> can be coerced to <code>[T]</code> so it sounds OK.
+It is also probably fine to convert <code>R: Read</code> to <code>dyn Read</code>.
+Also, maybe <code>Box&lt;T&gt;</code> to <code>T</code>, since we access it behind reference, so as any other <code>Deref</code> or <code>DerefMut</code>.
+Oh, also <code>T</code> may contain lifetimes, so subtyping can be relevant too...</p>
+<p>Now, this starts to suspiciously resemble <a href="https://doc.rust-lang.org/stable/reference/type-coercions.html?highlight=coercion#coercion-types">coercion page</a> in Rust reference.
+And for a good reason: we literally are trying to list every possibility when one type can be
+<em>implicitly</em> converted into another.
+If reading that page induces a headache, just know, you are not alone.</p>
+<p>Also, hey, <code>&amp;mut T</code> to <code>&amp;T</code> is listed as a special case of coercion, hopefully this explains name choice for the op.</p>
+<p>Alright, to the bad news.
+Abstracting over all of this is just impossible.
+With help of specialization, we can cover certain bits,
+but things like subtyping and <code>dyn</code> coercion are hardwired into compiler and is out of our reach.
+This is <em>a lot</em> more restrictive than it sounds.
+It can potentially be worked around in specific examples by implementing <code>Coerce</code> trait on capability wrappers,
+but it isn't implemented at the moment.</p>
+<h4 id="unification-1">Unification</h4>
+<p>One nice thing about generics in capabilities is that they naturally leak into function type.
+If <code>bar</code> uses <code>alloc&lt;A&gt;</code>, <code>alloc&lt;A&gt;</code> will make it into <code>bar::Context</code>
+and compiler naturally will ask where that <code>A</code> came from, to which you can have two answers:</p>
+<ul>
+<li>make current function generic over <code>A</code></li>
+<li>specify a concrete type, like <code>Global</code></li>
+</ul>
+<p>This is almost a trick: we <em>don't need to produce</em> type <code>U</code> as unification of <code>T</code> and <code>V</code>,
+compiler makes sure it is always provided by user!
+The real question is when and under which conditions we can unify <code>T</code> into <code>U</code>.
+Which leads to three situations:</p>
+<ol>
+<li>
+<p>Both <code>U</code> and <code>T</code> are generic.</p>
+<p>This is the simplest case.
+No conversions, both generics refer to the same type.
+As a nice bonus, any number of different <code>T</code>s can be unified in such fashion.</p>
+</li>
+<li>
+<p><code>U</code> is generic, but <code>T</code> is a concrete type.</p>
+<p>To make it work compiler needs to ensure that it is possible to coerce every <code>U</code> to <code>T</code>.
+It can be trivial (e.g. <code>A: Allocator</code> to <code>dyn Allocator</code>), but might ask user to specify some extra bounds on <code>U</code>.</p>
+<p>This case can result in trouble. 
+When you try to coerce to multiple <code>T</code>s it might be possible to produce combination of coercions 
+that is impossible to satisfy.</p>
+</li>
+<li>
+<p>Both <code>U</code> and <code>T</code> is a concrete type.</p>
+<p>Again, the requirement here is that <code>U</code> is coercible to <code>T</code>.
+On the bright side, unlike 2nd case we always either succeed or get a compiler error.
+There is no way to produce uncallable functions.</p>
+</li>
+</ol>
+<p>Obviously, case when <code>U</code> is concrete, but <code>T</code> is generic is impossible.
+We cannot ensure that coercing concrete type to any arbitrary one always works.
+Solution to this case is trivial: specify <code>T = U</code>.</p>
+<p>Generally speaking, unification in both 1st and 2nd case is always trivially achievable.
+However, there are problems waiting to happen on the boundary where generic type is replaced by concrete one,
+so this part might require extra work.</p>
+<h1 id="desugaring-into-gats">Desugaring into GATs</h1>
+<h2 id="cxfn-traits"><code>CxFn*</code> traits</h2>
+<p>As I mentioned when introducing <a href="https://haibane-tenshi.github.io/rust-contexts2/#cxfn-family-core">newer <code>CxFn*</code> traits</a>,
+they are not complete, and it is time to finish them.
+In this implementation we will use a GAT-based approach.
+This is the first one I fully developed, and it is the one which started this whole journey.
+There is another promising lead, but right now let's focus on what is in front of us.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>CxFnOnce&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        </span><span style="color:#bf616a;">args</span><span>: Args,</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFnMut&lt;Args&gt;: CxFnOnce&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_mut</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        &amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        </span><span style="color:#bf616a;">args</span><span>: Args,</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFn&lt;Args&gt;: CxFnMut&lt;Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        &amp;</span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        </span><span style="color:#bf616a;">args</span><span>: Args,</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Looks quite... abominable, actually.</p>
+<p>Lifetime count should be explainable by our <code>Store</code> only holding up to 4 capabilities.
+It is not surprising to see <code>Context</code> being a GAT, but <code>Output</code> is probably unexpected.
+Let's dive deep into that right away.</p>
+<h2 id="lifetimes">Lifetimes</h2>
+<p>One of the important things we need to sort out is how contextual function handle late-bound lifetimes.
+Unlike in normal functions, a lifetime can appear in one of three places: arguments, output or context.
+This leads to four interesting situations:</p>
+<ul>
+<li>lifetime appears only in context,</li>
+<li>in context and arguments,</li>
+<li>in context and output,</li>
+<li>in all three.</li>
+</ul>
+<p>The latter is a straightforward combination of previous two so we can skip it,
+which leaves us with three situations to study.</p>
+<p>And before continuing I recommend reading my <a href="https://haibane-tenshi.github.io/rust-early-and-late-bound-generics/">earlier post</a>
+as a refresher on this topic.</p>
+<h3 id="late-bound-lifetime-in-context">Late-bound lifetime in context</h3>
+<p><code>Context</code> is an associated type, so we cannot just put a lifetime in:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;a</span><span>&gt; CxFnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>f {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context = &amp;</span><span style="color:#b48ead;">&#39;a str</span><span>; </span><span style="color:#65737e;">// Nope!</span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This is required for type system soundness.
+Traditionally, there are three ways to solve it:</p>
+<ul>
+<li>Put lifetime into <code>Self</code> type.
+We cannot do that, because it renders lifetime early-bound.</li>
+<li>Put lifetime into trait.
+It implies that lifetime is part of arguments, and we claimed it is not.</li>
+<li>Constrain lifetime in <code>where</code> block.
+By current rules late-bound lifetime must be universally qualified, so this option is also out.</li>
+</ul>
+<p>This is where GAT comes in.
+It allows us to introduce a lifetime, while keeping good appearances:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>CxFnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>is_empty {</span><span>
+</span><span>    </span><span style="color:#65737e;">// Simplified to reduce noise.</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = &amp;</span><span style="color:#b48ead;">&#39;_0</span><span> __hidden_str;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<h3 id="late-bound-lifetime-in-context-and-output">Late-bound lifetime in context and output</h3>
+<p>Situation gets worse when <code>Output</code> is involved.
+Trying to put lifetime into output puts us basically under the same conditions as in the precious case. 
+This is the reason for <code>Output</code> to be GAT as well:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>CxFnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>first_char {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = &amp;</span><span style="color:#b48ead;">&#39;_0 str</span><span>;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = &amp;</span><span style="color:#b48ead;">&#39;_0</span><span> __hidden_str;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        </span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        </span><span style="color:#bf616a;">args</span><span>: (),</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; {</span><span>
+</span><span>        </span><span style="color:#65737e;">// ...</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Capability lifetime sharing is encoded in a roundabout way:
+those are defined on <code>cx_call_once</code> method and then passed into <code>Context</code> and <code>Output</code>.</p>
+<p>This is certainly my least favorite part about this approach.</p>
+<h3 id="late-bound-lifetime-in-context-and-argument">Late-bound lifetime in context and argument</h3>
+<p>Because such lifetime appears in trait, it is equivalent to &quot;normal&quot; late-bound lifetime:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;s</span><span>&gt; CxFnOnce&lt;(&amp;</span><span style="color:#b48ead;">&#39;s str</span><span>,)&gt; </span><span style="color:#b48ead;">for </span><span>compare_to {</span><span>
+</span><span>    </span><span style="color:#65737e;">// Oversimplified to reduce noise.</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = &amp;</span><span style="color:#b48ead;">&#39;s</span><span> __hidden_str;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Extra lifetimes from GAT can simply be ignored.
+Boring.</p>
+<h3 id="insights">Insights</h3>
+<p>So what are the takeaways?</p>
+<ul>
+<li>
+<p>This design is fully compatible with late-bound lifetimes.</p>
+</li>
+<li>
+<p>The only reason why we need GATs is to potentially support object safety.
+If this is not a concern, the complication can be removed.
+Personally, I don't think that abandoning it is a good idea, but it is an option.
+There could be situations where GATs are in the way of exploring designs,
+however at this point we might as well use a <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-input-lifetimes">different desugaring</a>.</p>
+</li>
+<li>
+<p>An extension from second point, we need GATs in <code>Output</code> only to support sharing late-bound lifetimes
+between it and <code>Context</code>.
+But, again, I don't think it is worth to abandon.
+This case is likely to be quite prevalent.</p>
+</li>
+<li>
+<p>While we saved references to capabilities,
+any other lifetime embedded into capability itself is doomed to be early-bound.
+However, this is to be expected.
+To construct <code>&amp;'cap cap&lt;'a&gt;</code> we need <code>'a: 'cap</code> bound, but spelling it renders both lifetimes early-bound.</p>
+</li>
+</ul>
+<h2 id="fn-capability">fn: <code>&amp;capability</code></h2>
+<p>Time to look at function desugarings.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">len</span><span>()</span><span>
+</span><span>with data_store: &amp;Vec&lt;</span><span style="color:#b48ead;">u32</span><span>&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    data_store.</span><span style="color:#96b5b4;">len</span><span>()</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>(Actually, after working with generic capabilities 
+I kind of consider it a good idea to always spell out expected capability type.)</p>
+<p>Expands into this mostrosity:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>CxFnOnce&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>len {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = </span><span style="color:#b48ead;">usize</span><span>;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; =</span><span>
+</span><span>        MakeContext&lt;(Select&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, Shared, __data_store&gt;,)&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        </span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        (): (),</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; {</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> data_store = cx.extract_ref::&lt;__data_store&gt;();</span><span>
+</span><span>        data_store.</span><span style="color:#96b5b4;">len</span><span>()</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p><code>MakeContext</code> jumbles together capability references into proper <code>Store</code> type.
+<code>Select</code>'s job is to pick lifetime which corresponds to <code>__data_store</code> capability.
+We will talk about reasons for this complication when we get to traits.
+The rest should look self-explanatory.</p>
+<p>I will again omit implementations of <code>CxFnOnce</code> and <code>CxFnMut</code> in examples to reduce verbosity.</p>
+<h2 id="fn-mut-capability">fn: <code>&amp;mut capability</code></h2>
+<p>Mutable case looks very similar.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">push</span><span>(</span><span style="color:#bf616a;">value</span><span>: </span><span style="color:#b48ead;">u32</span><span>)</span><span>
+</span><span>with data_store: &amp;</span><span style="color:#b48ead;">mut </span><span>Vec&lt;</span><span style="color:#b48ead;">u32</span><span>&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    data_store.</span><span style="color:#96b5b4;">push</span><span>(value)</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>expands into</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>CxFnOnce&lt;(</span><span style="color:#b48ead;">u32</span><span>,)&gt; </span><span style="color:#b48ead;">for </span><span>push {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = ();</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; =</span><span>
+</span><span>        MakeContext&lt;(Select&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, Mutable, __data_store&gt;,)&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        </span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        (</span><span style="color:#bf616a;">value</span><span>,): (</span><span style="color:#b48ead;">u32</span><span>,),</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; {</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> data_store = cx.extract_mut::&lt;__data_store&gt;();</span><span>
+</span><span>        data_store.</span><span style="color:#96b5b4;">push</span><span>(value);</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Note that our tricks about putting mutable references away doesn't absolve us from responsibility to uphold Rust rules.
+In particular, we cannot keep local mutable references while calling any function
+which can touch capabilities behind those.
+The restriction already works in normal code, so we should be expected to follow.</p>
+<h2 id="traits">Traits</h2>
+<h3 id="desugaring-methods">Desugaring methods</h3>
+<p>Let's figure out how to reduce trait methods to something we can work with.</p>
+<p>Observation: every function has a type which implements relevant <code>Fn*</code> traits and the type is what matters to us.
+More than that every function type is also ZST, so function objects can be spawned from thin air with no harm.
+Following this thought, it is possible to replace functions with associated types:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>Archiver {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">add_record</span><span>&lt;T&gt;(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">t</span><span>: T);</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">len</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>) -&gt; </span><span style="color:#b48ead;">usize</span><span>;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>replaced by</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>Archiver {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>add_record&lt;T&gt;: Default + Fn(&amp;</span><span style="color:#b48ead;">mut Self</span><span>, T);</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>len: Default + Fn(&amp;</span><span style="color:#b48ead;">Self</span><span>) -&gt; </span><span style="color:#b48ead;">usize</span><span>;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>There is no way to encode ZST requirement, but <code>Default</code> gives us ability to spawn function objects at will.
+Close enough.
+Also, GATs are required to accurately model generic parameters, but it isn't a problem for us.</p>
+<h3 id="desugaring-contextual-methods">Desugaring contextual methods</h3>
+<p>It is easy to apply the technique to contextual functions.</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">trait </span><span>MyPush {</span><span>
+</span><span>    </span><span style="color:#65737e;">// This method is specified with restricted context.</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>concrete_push: Default</span><span>
+</span><span>        + </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; CxFn&lt;</span><span>
+</span><span>            (</span><span style="color:#b48ead;">u32</span><span>,),</span><span>
+</span><span>            Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = (),</span><span>
+</span><span>            Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = MakeContext&lt;(</span><span>
+</span><span>                Select&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, Mutable, __data_store&gt;,</span><span>
+</span><span>            )&gt;,</span><span>
+</span><span>        &gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#65737e;">// This method is specified with wildcard context.</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>wildcard_push: Default</span><span>
+</span><span>        + </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, </span><span style="color:#b48ead;">&#39;a</span><span>&gt; CxFn&lt;</span><span>
+</span><span>            (&amp;</span><span style="color:#b48ead;">&#39;a Self</span><span>, </span><span style="color:#b48ead;">u32</span><span>),</span><span>
+</span><span>            Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = ()</span><span>
+</span><span>        &gt;;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>And it immediately brings us to an option.
+We can either fully specify the context, restricting it in trait definition, or leave it unspecified.
+We call unspecified context <em>a wildcard</em>.
+Such context is defined by trait implementor, it allows them to request any set of capabilities
+(and it can be different between different implementors).</p>
+<p>It also makes sense that wildcard contexts are most desirable.
+Often, trait implementors are going to be in other crate, far away from trait definition,
+possibly using capabilities that trait itself have no information about.
+Considering how popular trait usage is in Rust, without wildcard contexts the feature can never succeed.
+So, we would like to ensure it works.</p>
+<p>Wildcard contexts have a minor problem, however.
+Imagine you hold on to <code>'alloc</code> lifetime, which slot of <code>Context&lt;'_, '_, '_, '_&gt;</code> do you
+put it in?
+This is important for trait user and trait implementor to agree in this instance on meaning of lifetimes,
+otherwise compiler will get confused.
+By extension this also must be true between all trait implementors, or even normal functions.</p>
+<p>The easiest solution is to (globally) assign indices to capability lifetimes as well.
+We already assigned indices to capabilities, so lifetimes can just reuse them. 
+This is exactly what <code>Select</code> does: pick lifetime based on capability index and glue those two together.
+Technically, we can get away by manually designating specific lifetime slots to belong to specific capabilities,
+but it is simpler this way.</p>
+<h3 id="using-contextual-methods">Using contextual methods</h3>
+<p>Implementing trait is only half of a story.
+Usage is where most of complexity resides.</p>
+<p>Restricted contexts present no issue.
+Because context is known at usage site, such a method is no different from plain function
+at least with respect to type manipulation.</p>
+<p>Wildcard contexts are another beast entirely.
+Imagine the following setup:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;F, G&gt; CxFn&lt;(F, G)&gt; </span><span style="color:#b48ead;">for </span><span>call_two&lt;F, G&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    F: CxFn&lt;(), Output = ()&gt;,</span><span>
+</span><span>    G: CxFn&lt;(), Output = ()&gt;,</span><span>
+</span><span>        </span><span>
+</span><span>    </span><span style="color:#65737e;">// Let&#39;s omit other bounds for brevity...</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, (</span><span style="color:#bf616a;">f</span><span>, </span><span style="color:#bf616a;">g</span><span>): (F, G), </span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        {</span><span>
+</span><span>            </span><span style="color:#b48ead;">let</span><span> cx = cx.</span><span style="color:#96b5b4;">reborrow</span><span>().</span><span style="color:#96b5b4;">coerce</span><span>();</span><span>
+</span><span>            f.</span><span style="color:#96b5b4;">cx_call</span><span>((), cx)</span><span>
+</span><span>        }</span><span>
+</span><span>
+</span><span>        {</span><span>
+</span><span>            </span><span style="color:#b48ead;">let</span><span> cx = cx.</span><span style="color:#96b5b4;">coerce</span><span>();</span><span>
+</span><span>            g.</span><span style="color:#96b5b4;">cx_call</span><span>((), cx)</span><span>
+</span><span>        }</span><span>
+</span><span>    }</span><span>
+</span><span>} </span><span>
+</span></code></pre>
+<p>In order to make the function legal we need to convince compiler of three things:
+<code>f</code>'s and <code>g</code>'s contexts can be unified,
+and that unified context can be reborrowed and then coerced in this order.
+All three should be true by convention.</p>
+<p>We can type those bounds, <code>call_two</code> even compiles!
+But, any attempt at calling it immediately fails.</p>
+<p>Compiler at this point just gave up on giving intelligible errors.
+To get a gist of what's going on let's zoom in on one capability.
+For example, if <code>f</code> requests <code>&amp;__hidden_str</code> capability and <code>g</code> doesn't, in particular it produces the following bound: </p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>FaultyBound</span><span>
+</span><span>where</span><span>
+</span><span>    for&lt;&#39;_0, &#39;local&gt; &lt;</span><span>
+</span><span>                &lt;(Some&lt;HandleRef&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, __hidden_str&gt;&gt;, None) as Unified&gt;::Output</span><span>
+</span><span>            as Reborrow&gt;::Output&lt;</span><span style="color:#b48ead;">&#39;local</span><span>&gt;:</span><span>
+</span><span>        Coerce&lt;Some&lt;HandleRef&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, __hidden_str&gt;&gt;&gt;;</span><span>
+</span></code></pre>
+<p>If you remember, <code>Reborrow::Output&lt;'local&gt;</code> has <code>where Self: 'local</code> clause, which is required for soundness.
+Now it should be apparent what happened.
+Combining those two bounds gives us <code>'_0: 'local</code>, but both lifetimes are universally qualified!
+We need to add this clause to HRTB to make this legal.</p>
+<p>There is a deeper issue still.
+Mutable references in this situation reveal a weird edge.
+Watch what happens if we replace <code>HandleRef</code> with <code>HandleMut</code>:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>FaultyBound</span><span>
+</span><span>where</span><span>
+</span><span>    for&lt;&#39;_0, &#39;local&gt; &lt;</span><span>
+</span><span>                &lt;(Some&lt;HandleMut&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, __hidden_str&gt;&gt;, None) as Unified&gt;::Output</span><span>
+</span><span>            as Reborrow&gt;::Output&lt;</span><span style="color:#b48ead;">&#39;local</span><span>&gt;:</span><span>
+</span><span>        Coerce&lt;Some&lt;HandleMut&lt;&#39;</span><span style="background-color:#bf616a;color:#2b303b;">???</span><span>, __hidden_str&gt;&gt;&gt;;</span><span>
+</span></code></pre>
+<p>Reborrowing replaces <code>'_0</code> with <code>'local</code>, so for this bound to compile we need to insert <code>'local</code> in place of <code>'???</code>.
+But rememeber, we are working with opaque context.
+The only way to tweak expected lifetimes in such way is to spell something like
+<code>&lt;F as CxFnOnce&lt;(), Output=()&gt;::Context&lt;'local, '_1, '_2, '_3&gt;</code>.
+But from inside <code>call_two</code> we don't know if such replacement is warranted!
+For all we know <code>f</code> might want shared reference with the real lifetime instead.</p>
+<p>You can witness the madness for yourself in <a href="https://github.com/haibane-tenshi/rust_context_emulation/blob/main/examples/gat/wildcard01_with_reborrow.rs">the corresponding example</a>.</p>
+<p>The most obvious next step is to get rid of this pesky reborrowing.
+It implies abandoning support for mutable access as well, but we still have shared access.
+Without mutable references we can consider all context to be <code>Copy</code>able.
+And, lo and behold, <a href="https://github.com/haibane-tenshi/rust_context_emulation/blob/main/examples/gat/wildcard03_with_copy.rs">it works</a>!
+At least something is going our way.</p>
+<p>There are still a few things we can try to solve the two issues,
+but those require <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-hybrid">further modifications</a> to the approach.</p>
+<h2 id="object-safety">Object safety</h2>
+<p>Strictly speaking, object safety of <code>CxFn*</code> traits is dependent on object safety of GATs, which is largely unexplored
+at the moment.
+However, since when &quot;You cannot do that!&quot; stop us?
+We can emulate <code>dyn</code> objects too.</p>
+<p>We will need a vtable:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">type </span><span>FixedContext&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; =</span><span>
+</span><span>    MakeContext&lt;(Select&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, Mutable, __counter&gt;,)&gt;;</span><span>
+</span><span>
+</span><span style="color:#b48ead;">struct </span><span>CxFnVTable {</span><span>
+</span><span>    </span><span style="color:#b48ead;">pub </span><span style="color:#bf616a;">cx_call</span><span>: for&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; </span><span style="color:#b48ead;">fn</span><span>(</span><span>
+</span><span>        </span><span style="color:#b48ead;">*const </span><span>(),                        // </span><span style="color:#b48ead;">Self</span><span>
+</span><span>        (),                               // Args</span><span>
+</span><span>        FixedContext&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;, // Context</span><span>
+</span><span>    ) -&gt; (),</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>A pseudo-<code>dyn</code> object:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>DynCxFn {</span><span>
+</span><span>    </span><span style="color:#bf616a;">vtable</span><span>: CxFnVTable,</span><span>
+</span><span>    </span><span style="color:#bf616a;">this</span><span>: </span><span style="color:#b48ead;">*const </span><span>(),</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>I will omit implementation of <code>CxFn*</code> traits as those are trivial.
+Last, we need a way to transform normal functions:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>DynCxFn {</span><span>
+</span><span>    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">coerce_from</span><span>&lt;F&gt;(</span><span style="color:#bf616a;">f</span><span>: &amp;F) -&gt; </span><span style="color:#b48ead;">Self</span><span>
+</span><span>    </span><span style="color:#b48ead;">where</span><span>
+</span><span>        F: </span><span style="color:#b48ead;">for</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; CxFn&lt;</span><span>
+</span><span>            (),</span><span>
+</span><span>            Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = (),</span><span>
+</span><span>            Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; = FixedContext&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>        &gt;,</span><span>
+</span><span>    {</span><span>
+</span><span>        </span><span style="color:#b48ead;">let </span><span style="color:#8fa1b3;">cx_call </span><span>= |</span><span style="color:#bf616a;">this</span><span>: </span><span style="color:#b48ead;">*const </span><span>(), </span><span style="color:#bf616a;">args</span><span>: (), </span><span style="color:#bf616a;">cx</span><span>: FixedContext&lt;&#39;_, &#39;_, &#39;_, &#39;_&gt;| -&gt; () {</span><span>
+</span><span>            </span><span style="color:#b48ead;">unsafe </span><span>{</span><span>
+</span><span>                </span><span style="color:#b48ead;">let</span><span> this = &amp;*(this as </span><span style="color:#b48ead;">*const</span><span> F);</span><span>
+</span><span>                this.</span><span style="color:#96b5b4;">cx_call</span><span>(args, cx)</span><span>
+</span><span>            }</span><span>
+</span><span>        };</span><span>
+</span><span>
+</span><span>        </span><span style="color:#b48ead;">let</span><span> vtable = CxFnVTable { cx_call };</span><span>
+</span><span>
+</span><span>        DynCxFn {</span><span>
+</span><span>            vtable,</span><span>
+</span><span>            this: f as </span><span style="color:#b48ead;">*const</span><span> F as </span><span style="color:#b48ead;">*const </span><span>(),</span><span>
+</span><span>        }</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>I know, it doesn't look very safe to use, but not much we can do.
+Native <code>dyn</code> objects are unsized, however custom DSTs are far away.
+It is good enough to use in a lab.</p>
+<p>Does this function?
+Actually, <a href="https://github.com/haibane-tenshi/rust_context_emulation/blob/main/examples/gat/adv01_dyn_cxfn.rs">yes</a>!</p>
+<p>One nitpick that I have is that this approach is hard to generalize.
+You have to produce a specialized version for each function signature.
+I struggled to properly constrain <code>Output</code>'s lifetimes in generalization .
+Not exactly sure what's at fault,
+could be that we need proper HKTs for that.</p>
+<p>Anyways, it works in this form, and I call this a win.</p>
+<h2 id="design-issues">Design issues</h2>
+<p>First, most obviously, reliance on GATs.
+Because GATs are central to this design we also inherit any limitations and issues,
+whether existing or discovered in the future.
+This isn't really a problem in itself, building new features on top of others is a natural way to develop language,
+but it is something to be aware of.</p>
+<p>Second, this design is clunky around edges.
+You probably never have to interact with <code>Context</code>, but having GATs on <code>Output</code> associated type is especially bad.
+Every programmer out there trying to type <code>my_fn::Output&lt;'??, '??,...&gt;</code> now have to think what are those lifetimes
+and where they come from.
+It also implies uncontrolled proliferation of HRTBs, which isn't something I welcome either.</p>
+<p>Third, implementation of late-bound lifetimes is inconsistent.
+Lifetimes that appear in arguments are defined on <code>impl</code> block</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;s</span><span>&gt; CxFn&lt;(&amp;</span><span style="color:#b48ead;">&#39;s str</span><span>,)&gt; </span><span style="color:#b48ead;">for </span><span>foo {</span><span>
+</span><span style="color:#65737e;">//   ^^    </span><span>
+</span><span>    </span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>But the ones that don't are actually defined on <code>cx_call*</code> method</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl </span><span>CxFn&lt;()&gt; </span><span style="color:#b48ead;">for </span><span>bar {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;(</span><span>
+</span><span>        </span><span style="color:#65737e;">//     ^^^^^^^^^^^^^^^^^^</span><span>
+</span><span>        &amp;</span><span style="color:#bf616a;">self</span><span>,</span><span>
+</span><span>        (): (),</span><span>
+</span><span>        </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt;,</span><span>
+</span><span>    ) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; {</span><span>
+</span><span>        </span><span style="color:#65737e;">// ...</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>This isn't immediately apparent, but it might present an issue if we ever desire to expand on definition of late-bound
+lifetimes, for ex. allow bounds them.
+The second group is built into definition of the trait, so we can never modify it.
+Those lifetimes are forever universally qualified.</p>
+<p>An additional concern about it is complexity.
+Because source of late-bound lifetime can differ it adds extra difficulty to their handling.
+This point definitely cannot be overlooked. </p>
+<h1 id="desugaring-into-input-lifetimes">Desugaring into input lifetimes</h1>
+<h2 id="cxfn-traits-1"><code>CxFn*</code> traits</h2>
+<p>The other approach is to embed capability lifetimes directly into <code>CxFn*</code> traits:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>CxFnOnce&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFnMut&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt;: CxFnOnce&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFn&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt;: CxFnMut&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Yeah, don't ask.
+I have no idea how GATs came out first.</p>
+<p>Since this post is too long already, I won't go into as much detail here.</p>
+<h2 id="comparison-with-gat-based-approach">Comparison with GAT-based approach</h2>
+<p>In terms of feature set this approach is able to replicate everything that GAT-based one managed to achieve.
+It doesn't address mutable references in wildcard contexts.</p>
+<p>Key improvements:</p>
+<ul>
+<li>There is no bifurcation of late-bound lifetimes</li>
+<li>There is no GAT on <code>Output</code></li>
+</ul>
+<p>I view both as a serious issue, and it is nice to see that we can improve on them.
+Another minor improvement is object safety.
+Since there are no GATs anymore, traits are <code>dyn</code> safe by default.</p>
+<p>Overall this is a pure win.</p>
+<h2 id="flavors-of-early-bound-lifetimes">Flavors of early-bound lifetimes</h2>
+<p>Yet, there is another distinction I have to mention.</p>
+<p>There are two distinct ways you can implement early-bound lifetimes in this approach.</p>
+<p>&quot;Freeform&quot; flavor:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, </span><span style="color:#b48ead;">&#39;data_store</span><span>&gt; CxFn&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, ()&gt;</span><span>
+</span><span>    for freeform&lt;</span><span style="color:#b48ead;">&#39;data_store</span><span>&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Or &quot;connected&quot; flavor:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;data_store</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; CxFn&lt;</span><span style="color:#b48ead;">&#39;data_store</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, ()&gt;</span><span>
+</span><span>    for connected&lt;</span><span style="color:#b48ead;">&#39;data_store</span><span>&gt;</span><span>
+</span><span>{</span><span>
+</span><span>    </span><span style="color:#65737e;">// ...</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>The second flavor is unique to this approach.
+GATs are locked only to the first one.</p>
+<p>To be frank, I still have no idea which one is correct.
+Obviously, the second flavor exposes a lifetime dependency to surrounding code,
+so as long as the early-bound lifetime is exposed we have to account for and propagate this dependency.
+However, so far I have not encountered any case where this actually presents a problem.</p>
+<p>We can craft a situation
+where it might be possible to observe difference in behavior by completely erasing the lifetime.
+This implies:</p>
+<ul>
+<li>No direct access to function type, i.e. it is behind a generic <code>F</code> type</li>
+<li>Context must be wildcard, because capability lifetime is always part of it even when early-bound</li>
+<li>The lifetime must not appear in either arguments or output type</li>
+</ul>
+<p>I <a href="https://github.com/haibane-tenshi/rust_context_emulation/blob/main/examples/input/wildcard04_early_bound_liftime_flavors.rs">attempted that</a>.
+It compiles when it should and doesn't compile when it shouldn't.
+Beats me ¯\_(ツ)_/¯
+The only distinction is what errors are produced.
+The first flavor complains that unification and coercion bounds fail,
+the second complains that <code>F</code>'s implementation is not general enough. </p>
+<p>If you ask, I put my money on second flavor with vague reasons like
+it doesn't introduce unused late-bound lifetimes, and it propagates lifetime dependencies to caller,
+which results in more sensible errors.
+If you are able to clarify this contest, please do.</p>
+<p>Despite this being said, examples in the repo almost exclusively use the first flavor.
+The reasons are technical: it is way simpler to implement, and this is easier to keep it comparable to GATs. </p>
+<h1 id="desugaring-into-hybrid">Desugaring into hybrid</h1>
+<p>Alright, let's tackle mutable references in wildcard contexts.
+As we <a href="https://haibane-tenshi.github.io/rust-contexts2/#using-contextual-methods">previously figured</a>, there are two issues:</p>
+<ul>
+<li>Lack of <code>where</code> clause in HRTB</li>
+<li>Incorrect shape of contexts used as coercion target</li>
+</ul>
+<h2 id="reborrow2-trait"><code>Reborrow2</code> trait</h2>
+<p>We are hardly the only people to run into the first issue.
+With pending stabilization of GATs this has been raised a few times.
+Sabrina Jewson nicely outlines it in <a href="https://sabrinajewson.org/blog/the-better-alternative-to-lifetime-gats">her post</a>,
+and luckily for us, she also highlights a possible <a href="https://sabrinajewson.org/blog/the-better-alternative-to-lifetime-gats#the-better-gats">solution</a>.</p>
+<p>We need to reshape <code>Reborrow</code> trait:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>Reborrow2Lifetime&lt;&#39;this, ImplicitBound = &amp;&#39;this Self&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>Reborrow2: for&lt;&#39;this&gt; Reborrow2Lifetime&lt;&#39;this&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">reborrow</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>) -&gt; &lt;</span><span style="color:#b48ead;">Self </span><span>as Reborrow2Lifetime&lt;&#39;_&gt;&gt;::Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>The only notable downside to this is lack of object safety,
+but we never have to create trait objects out of this trait, so we don't care.</p>
+<p>I don't know how to word it.
+We came to a point where we emulate GATs in order to emulate reborrowing in order to emulate contexts.
+I hope you appreciate how deep this goes.</p>
+<h2 id="cxfn-traits-2"><code>CxFn*</code> traits</h2>
+<p>To help our coercion bounds we need to communicate to target context that 
+expected mutable references' lifetimes need to be replaced by some <code>'local</code> lifetime.
+This can be achieved by simply adding extra lifetime to definition of <code>CxFn*</code> traits:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub trait </span><span>CxFnOnce&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output;</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;m</span><span>&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;&#39;_&gt;) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFnMut&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt;: CxFnOnce&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_mut</span><span>(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;&#39;_&gt;) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">pub trait </span><span>CxFn&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt;: CxFnMut&lt;&#39;_0, &#39;_1, &#39;_2, &#39;_3, Args&gt; {</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call</span><span>(&amp;</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: Args, </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;&#39;_&gt;) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output;</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Trait implementor is responsible to put <code>'m</code> on all mutable references.</p>
+<p>There is definitely an option to embed it into the trait alongside of &quot;real&quot; lifetimes.
+Combined with GAT-based approach it gives us 4 different varieties.
+It is enough to check just one, we already know there isn't any meaningful difference between where to put lifetimes.</p>
+<h2 id="usage-in-wildcard-contexts">Usage in wildcard contexts</h2>
+<p>So, what's the verdict?
+Does it work?</p>
+<p>Well, given two functions</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; CxFnOnce&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, ()&gt; </span><span style="color:#b48ead;">for </span><span>mutable_ref {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;m</span><span>&gt; = MakeContext&lt;(</span><span>
+</span><span>        &amp;</span><span style="color:#b48ead;">&#39;m mut</span><span> __counter,</span><span>
+</span><span>    )&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: (), </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;&#39;_&gt;) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#65737e;">// ...</span><span>
+</span><span>    }</span><span>
+</span><span>}</span><span>
+</span><span>
+</span><span style="color:#b48ead;">impl</span><span>&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>&gt; CxFnOnce&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, ()&gt; </span><span style="color:#b48ead;">for </span><span>shared_ref {</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Output = ();</span><span>
+</span><span>    </span><span style="color:#b48ead;">type </span><span>Context&lt;</span><span style="color:#b48ead;">&#39;m</span><span>&gt; = MakeContext&lt;(</span><span>
+</span><span>        Select&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, </span><span style="color:#b48ead;">&#39;_1</span><span>, </span><span style="color:#b48ead;">&#39;_2</span><span>, </span><span style="color:#b48ead;">&#39;_3</span><span>, Shared, __counter&gt;,</span><span>
+</span><span>    )&gt;;</span><span>
+</span><span>
+</span><span>    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">cx_call_once</span><span>(</span><span style="color:#bf616a;">self</span><span>, </span><span style="color:#bf616a;">args</span><span>: (), </span><span style="color:#bf616a;">cx</span><span>: </span><span style="color:#b48ead;">Self::</span><span>Context&lt;&#39;_&gt;) -&gt; </span><span style="color:#b48ead;">Self::</span><span>Output {</span><span>
+</span><span>        </span><span style="color:#65737e;">// ...</span><span>
+</span><span>    }</span><span>
+</span><span>} </span><span>
+</span></code></pre>
+<p>We can call both <code>call_two(shared_ref, shared_ref)</code> and <code>call_two(mutable_ref, mutable_ref)</code>.</p>
+<p>Great success!</p>
+<h2 id="more-problems">More problems</h2>
+<p>Almost.</p>
+<p>Unfortunately, <code>call_two(shared_ref, mutable_ref)</code> doesn't compile,
+which makes very little sense.
+How does <em>weakening</em> requirements on a function breaks it?</p>
+<p>This time, error message is actually helpful, but let me replicate the bad part anyways.
+This is coercion bound:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">struct </span><span>FaultyBound</span><span>
+</span><span>where</span><span>
+</span><span>    for&lt;&#39;_0, &#39;m, &#39;local&gt; &lt;</span><span>
+</span><span>                &lt;(</span><span>
+</span><span>                    Some&lt;HandleRef&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, __counter&gt;&gt;,</span><span>
+</span><span>                    Some&lt;HandleMut&lt;</span><span style="color:#b48ead;">&#39;m</span><span>, __counter&gt;&gt;</span><span>
+</span><span>                ) as Unified&gt;::Output</span><span>
+</span><span>            as Reborrow2Lifetime&lt;</span><span style="color:#b48ead;">&#39;local</span><span>&gt;&gt;::Output:</span><span>
+</span><span>        Coerce&lt;Some&lt;HandleRef&lt;</span><span style="color:#b48ead;">&#39;_0</span><span>, __counter&gt;&gt;&gt;;</span><span>
+</span></code></pre>
+<p>We already fail at unification step: lifetimes are expected to be equal!
+Our initial argument behind lifetime unification was that all capability references within the same context refer
+to the same data, so their lifetimes also must be the same.
+But our reborrowing traits break this assumption!</p>
+<p>Even if that wasn't an issue, and we manage to produce <code>HandleMut&lt;'_0, __counter&gt;</code> as result of unification,
+we are still screwed.
+After reborrowing it becomes <code>HandleMut&lt;'local, __counter&gt;</code> and original lifetime is lost.</p>
+<p>There is something really subtle going on here.
+To solve reborrowing limitation we need it to treat reference as shared while reborrowing.
+It is as if we have to coerce first.
+Now, if you actually think about it, this is how it is supposed to work in the first place:
+we shape context into what other function expects and <em>only then</em> reborrow to &quot;clone&quot;.
+However, we are doing it the other way around.</p>
+<p>There is a good reason for this.
+Coercing can produce new types, so it must operate by value.
+But we cannot move in mutable reference otherwise original context will lose it,
+and the only way to make more of them is to reborrow before coercing.
+We are chasing our own tail.</p>
+<p>And even if we go the brute force way and simply combine two operations,
+ultimately, what we are trying to express in this case is the following function:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">weird</span><span>&lt;</span><span style="color:#b48ead;">&#39;local</span><span>, </span><span style="color:#b48ead;">&#39;a</span><span>, T&gt;(</span><span style="color:#bf616a;">t</span><span>: &amp;</span><span style="color:#b48ead;">&#39;local mut </span><span>&amp;</span><span style="color:#b48ead;">&#39;a mut</span><span> T) -&gt; &amp;</span><span style="color:#b48ead;">&#39;a</span><span> T {</span><span>
+</span><span>    t</span><span>
+</span><span>}</span><span>
+</span></code></pre>
+<p>Which <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=ef43262b567aaa3f16b8f09b3dadc794">isn't even legal</a>!</p>
+<p>I believe this is the wall.</p>
+<h1 id="interaction-with-language">Interaction with language</h1>
+<p><strong><code>'static</code> capabilities</strong></p>
+<p>Even though capabilities are expected to be local variables, there are ways to make them live for <code>'static</code> lifetime.
+You can find practical applications for this.
+For example, you will need a <code>alloc: &amp;'static A</code> to put <code>Box&lt;T, &amp;'static A&gt;</code> into actual static variable.</p>
+<p>The simplest way to achieve this is to create a static variable and push reference to it into context.</p>
+<p>Another way is to use a ZST.
+Compiler treats shared references into fresh ZSTs as <code>'static</code> ones.
+However, references into ZST are dangling and there is no point passing them around.
+With help of specialization (or just <a href="https://users.rust-lang.org/t/trait-bound-for-zst-zero-sized-types/61620">const generics</a>?)
+we might be able to push ZSTs directly into context, getting all zero-size benefits.
+But then, affected types like <code>Box</code> will also be able to distinguish
+them and just embed ZST value directly instead of (dangling) reference,
+which sounds like a solid win.</p>
+<p>A word of caution though.
+This works only for shared references.
+As soon as you produce <code>&amp;'static mut T</code> all hell breaks loose.
+There are <a href="https://github.com/rust-lang/rust/issues/53639">long-wound discussions</a> around <code>static mut</code>, and I won't replicate it here.</p>
+<p><strong>Closures</strong></p>
+<p>For closures everything is good.
+There is an extra associated type involved, but functionally it doesn't require extra work from us.
+I don't see any obstacles to making contextual closures.</p>
+<p>The more interesting part, of course, is interaction with captures.
+Just like the last time I would imagine closures capture context at creation site by default.
+This provides us with reliable way to produce &quot;pure&quot; functions for various callbacks.
+Because captured context is part of closure object,
+it automatically becomes a subject to normal Rust's lifetime rules as well as auto-traits, like <code>Send</code> and <code>Sync</code>.
+Another bright spot is that such context capture is also minimalistic 
+since functions request only capabilities they need.</p>
+<p>This capture mode doesn't interact well with mutable references to capabilities,
+especially when wildcard contexts are involved.
+This is a potential counterpoint to implementing mutable access.</p>
+<p><strong>Threads</strong></p>
+<p>For a normal thread there is no outer environment to provide and host capabilities,
+so every thread is just a plain function.
+There are two ways to create them:</p>
+<ul>
+<li>Set up capabilities locally</li>
+<li>Capture context on parent thread with help of closure</li>
+</ul>
+<p>But if you take a look at <code>thread::spawn</code> method signature...</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">spawn</span><span>&lt;F, T&gt;(</span><span style="color:#bf616a;">f</span><span>: F) -&gt; JoinHandle&lt;T&gt;</span><span>
+</span><span style="color:#b48ead;">where</span><span>
+</span><span>    F: FnOnce() -&gt; T,</span><span>
+</span><span>    F: Send + </span><span style="color:#b48ead;">&#39;static</span><span>,</span><span>
+</span><span>    T: Send + </span><span style="color:#b48ead;">&#39;static</span><span>;</span><span>
+</span></code></pre>
+<p>...realistically it supports only the first method.
+<code>F: 'static</code> is very restrictive.</p>
+<p>The second mode is likely to be actively used by scoped threads (which got recently stabilized, nice!).
+For them capturing references is actually sensible,
+because they <em>do</em> have outer environment in the form of parent thread.</p>
+<p><strong>Extern ABI</strong></p>
+<p>Non-Rust ABIs don't have contexts.
+To call contextual function behind such API we need to convert it to a &quot;pure&quot; one,
+which leads us to the same set of solutions as for threads.
+Considering that closure execution outside of Rust sandbox is a risky endeavor,
+we are mostly limited to the first method.</p>
+<p>This can potentially be used to our benefit.
+For example, panicking across FFI is UB, and currently you need to check it by hand.
+But if every panic requires <code>panic_handler</code> capability (which is only set by <code>catch_unwind</code>),
+every unhandled panic immediately turns into a compiler error!</p>
+<p>(But I should say I don't know how well this setup integrates with existing panic mechanism.)</p>
+<p><strong>Traits</strong></p>
+<p>We already looked at how traits can be handled at mechanics level.</p>
+<p>From the language perspective, we should expect trait methods to have wildcard contexts by default,
+i.e. allow implementors to request whatever capabilities they want.
+Concrete contexts in trait methods are still possible, but likely to be a minority.</p>
+<p>This will also require additional syntax to replace wildcard contexts with concrete ones to
+e.g. create trait objects.</p>
+<p><strong>Futures/generators</strong></p>
+<p>Futures are interesting in a sense that they can request capabilities in two places:
+at creation point and in <code>Future::poll</code>.
+This creates some interesting practical considerations,
+for example is it worth capturing capability or just request it every time through <code>poll</code>?
+And how do we reflect this difference in <code>async fn</code> syntax?</p>
+<p>Also, future in this aspect behave more like scoped thread.
+It presumably runs in an executor,
+so it also has an outside environment (which can conveniently communicate capabilities through <code>Future::poll</code>).
+This will likely require executors to expose control over what context stored futures are supposed to receive. </p>
+<h1 id="conclusions">Conclusions</h1>
+<p>To be honest with you, I was <em>extremely</em> skeptical going into this part,
+but the result looks almost too good to be true.</p>
+<p><strong>Supported features</strong>:</p>
+<ul>
+<li>
+<p>Contextual functions are a superset of normal functions. There is no trait bifurcation.</p>
+</li>
+<li>
+<p>Only minimal (= required) set of capabilities is passed to each function.</p>
+</li>
+<li>
+<p>Usage in traits, including support for both concrete (requested capabilities are determined by trait definition)
+and wildcard (requested capabilities are determined by trait implementation) contexts.</p>
+</li>
+<li>
+<p>Ability to use functions with wildcard contexts in generic contexts.</p>
+</li>
+<li>
+<p>Ability to transparently propagate capability requirements (including received from wildcard contexts).</p>
+</li>
+<li>
+<p>Full support for access to capabilities through shared references.</p>
+</li>
+<li>
+<p>Partial support for access to capabilities through mutable references.</p>
+<p>Mutable references are fully usable in concrete contexts,
+but usage behind wildcard contexts is very difficult, courtesy of our reborrowing abstraction.</p>
+<p>Usage in wildcard contexts is flat impossible in both GAT- and input-based approaches.
+With some modifications to traits (see <a href="https://haibane-tenshi.github.io/rust-contexts2/#desugaring-into-hybrid">hybrid</a> approach)
+we can make it work, however mixing shared and mutable access (to the same capability) is still unachievable.
+I believe this to be a hard limitation.
+We will need a different way to represent reborrowing to proceed.</p>
+</li>
+<li>
+<p>Capabilities wrapping DST type.</p>
+</li>
+<li>
+<p>Type and lifetime generics on capabilities.</p>
+</li>
+<li>
+<p>Object safety.</p>
+<p>Object safety for other traits using contextual methods is based on object safety of <code>CxFn*</code> family,</p>
+<p>For GAT-based approach, <code>CxFn*</code> family object safety is deferred to GAT object safety.
+so certainly more work on GATs is required.
+Getting ahead of that, you <em>can</em> manually build a close approximation, which works.</p>
+<p>For input-based approach, object safety is given.</p>
+</li>
+</ul>
+<p><strong>Features, blocked behind language/compiler extensions</strong>:</p>
+<ul>
+<li>
+<p>Arbitrary number of capabilities.</p>
+<p>This is locked behind variadic types.
+We can sort-of work around when all contexts are transparent,
+but as soon as wildcard contexts are involved, variadic types are unavoidable.</p>
+<p>We can consider supporting only limited set of capabilities, e.g. only ones provided by <code>std</code>.
+However, I really don't like this option.
+There are plenty examples in ecosystem where capabilities seem like the right answer.</p>
+</li>
+<li>
+<p>Object safety in presence of arbitrary number of capabilities.</p>
+<p>To achieve this we need variadic lifetimes applied to <code>CxFn*</code> traits.
+This is way more demanding than it sounds.
+Rust doesn't allow us to manipulate lifetimes directly, the only thing we can do is to put it into a type.
+So, unless we see some improvements on this front, 
+variadic lifetimes imply <em>variadic type constructors</em> (are GATs sufficient?).
+And still there are plenty of questions, like how do we reshape lifetime list to what other function expects?
+Or how do I extract <code>'alloc</code> lifetime for local use?</p>
+<p>Realistically speaking, initial iterations of this would be implemented inside compiler
+with follow-up debates on whether it is even worth to expose the mess to language at all.
+This poses a real danger of <code>Fn*</code> traits being rendered forever unstable.</p>
+<p>We can try to avoid variadic lifetimes, however results are also not pretty.
+Without late-bound capability lifetimes all contextual functions (except &quot;pure&quot; ones with empty contexts)
+become <code>dyn</code>-unsafe.
+This will create an unfortunate rift between generics and <code>dyn</code> objects.
+Also people will immediately figure out that they can simply pass relevant capabilities as normal arguments
+and then push them into context inside the function,
+which is enough to make would-be-<code>dyn</code>-safe contextual functions actually <code>dyn</code>-safe.
+This potentially brings uncomfortable questions like why compiler cannot do it for us?</p>
+</li>
+<li>
+<p>Full support for mutable access to capabilities.</p>
+<p>The biggest blocker is reborrowing abstractions.
+Existing emulation works well enough with concrete contexts, but falls apart for wildcard contexts. </p>
+<p>The only reason for reborrowing is that we manipulate mutable references directly.
+As a mind experiment, we can replace all references with pointers to get around reborrowing limitations.
+This makes a lot of things unsafe and difficult to use, but most importantly it renders our <code>Store</code> always <code>Copy</code>.
+And we already know that wildcard <code>Copy</code>able contexts are functional!
+So, <em>theoretically speaking</em>, both GAT- and input-based approach are able to fully support mutable access.
+The challenge is whether we can construct a reborrowing abstraction to allow doing it safely. </p>
+<p>Let's also not deceive ourselves, difficulties go way beyond nailing reborrow trait.
+Mutable references don't play well with wildcard contexts at all.
+When borrow checker sees opaque context it has to be conservative with analysis 
+on off chance it contains a mutable reference.
+Throw in potential captures via closures, passing <code>T</code> objects around, and you get the picture.
+Likely, there will be a lot of unexpected pessimisation in generic code.</p>
+<p>The ironic part is that shared accesses are probably going to be an overwhelming majority.
+If we look at known motivating cases (<code>alloc</code>, <code>fs</code>, <code>log</code>, async executor, standard streams, etc.)
+they are either immutable or already want internal mutability for reasons.
+I don't doubt people will find compelling use cases for mutable access,
+but considering amount of effort required and looming restrictions
+I think this requires careful consideration.
+Do we want to support mutable access at all?
+Or can we provide feature in some limited form?</p>
+</li>
+</ul>
+<p>Have a nice day and see you next time!</p>
+
+    </div>
+
+    
+    
+
+    <div class="post-footer">
+        
+            
+                <div class="post-tags">
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/rust/">#rust</a>
+                    
+                        <a href="https://haibane-tenshi.github.io/tags/contexts/">#contexts</a>
+                    
+                </div>
+            
+            
+                <div class="post-nav">
+                    
+                        <a class="previous" href="https:&#x2F;&#x2F;haibane-tenshi.github.io&#x2F;rust-reborrowing&#x2F;">‹ Obscure Rust: reborrowing is a half-baked feature</a>
+                    
+                    
+                    
+                    
+                </div>
+            
+
+        
+
+    </div>
+
+    
+    
+</article>
+
+
+                </div>
+            </main>
+
+            
+            
+        </div>
+
+      
+          <script type="text/javascript" src="https://haibane-tenshi.github.io/even.js" ></script>
+      
+    </body>
+
+</html>
