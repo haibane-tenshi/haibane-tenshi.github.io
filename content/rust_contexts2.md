@@ -1492,9 +1492,10 @@ but the result looks almost too good to be true.
 
 * Contextual functions are a superset of normal functions. There is no trait bifurcation.
 * Only minimal (= required) set of capabilities is passed to each function.
-* Ability to transparently propagate capability requirements.
-* Usage in traits, including support for both restricted (requested capabilities are determined by trait definition)
+* Usage in traits, including support for both concrete (requested capabilities are determined by trait definition)
     and wildcard (requested capabilities are determined by trait implementation) contexts.
+* Ability to use functions with wildcard contexts in generic contexts.
+* Ability to transparently propagate capability requirements (including received from wildcard contexts).
 * Full support for access to capabilities through shared references.
 * Partial support for access to capabilities through mutable references.
 
